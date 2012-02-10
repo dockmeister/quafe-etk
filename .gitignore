@@ -1,0 +1,7 @@
+.eclipse_workspace
+.git
+*.so
+*.o
+*.d
+Release/*
+Debug/*

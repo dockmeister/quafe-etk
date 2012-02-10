@@ -1,0 +1,123 @@
+/*
+ * window.cpp
+ *
+ *  Created on: 08.02.2012
+ *      Author: cn
+ */
+
+#include "window.h"
+#include "../log.h"
+#include <boost/bind.hpp>
+
+#include <gtkmm/box.h>
+#include <gtkmm/button.h>
+#include <gtkmm/togglebutton.h>
+#include <gtkmm/image.h>
+#include <gtkmm/label.h>
+
+
+namespace Quafe {
+
+Window::Window() {
+	set_title("Quafe - eve tool kit");
+
+}
+
+gboolean Window::create_window() {
+	m_refActionGroup = Gtk::ActionGroup::create();
+	m_refUIManager = Gtk::UIManager::create();
+
+	signal_hide().connect(on_action_file_quit);
+
+
+	if (!create_menubar()) {
+		LOG(L_ERROR) << "window creation failed: failed to create the menubar";
+		return false;
+	}
+
+	if (!create_toolbar()) {
+		LOG(L_ERROR) << "window creation failed: failed to create the toolbar";
+		return false;
+	}
+
+	if (!create_modulebar()) {
+		LOG(L_ERROR) << "window creation failed: failed to create the pluginbar";
+		return false;
+	}
+
+	Gtk::VBox *vbox = Gtk::manage(new Gtk::VBox);
+	Gtk::HBox *hbox = Gtk::manage(new Gtk::HBox);
+
+	vbox->pack_start(*m_ptrMenubar, Gtk::PACK_SHRINK);
+	vbox->pack_start(*m_ptrToolbar, Gtk::PACK_SHRINK);
+	vbox->pack_start(*hbox, Gtk::PACK_EXPAND_WIDGET);
+	hbox->pack_start(*m_ptrModulebar, Gtk::PACK_SHRINK);
+	hbox->pack_start(m_refContentFrame, Gtk::PACK_EXPAND_WIDGET);
+
+	add(*vbox);
+
+	return true;
+}
+
+gboolean Window::create_menubar() {
+	m_refActionGroup->add(Gtk::Action::create("MenuFile", "_File"));
+	m_refActionGroup->add(Gtk::Action::create("Quit", Gtk::Stock::QUIT), on_action_file_quit);
+	m_refActionGroup->add(Gtk::Action::create("Preferences", Gtk::Stock::PREFERENCES), action_preferences);
+
+	m_refUIManager->insert_action_group(m_refActionGroup);
+	add_accel_group(m_refUIManager->get_accel_group());
+
+	ustring ui_info = "<ui>"
+		"  <menubar name='Menubar'>"
+		"    <menu action='MenuFile'>"
+		"      <menuitem action='Quit'/>"
+		"    </menu>"
+		"  </menubar>"
+		"  <toolbar name='Toolbar'>"
+		"	 <toolitem action='Quit' />"
+		"    <toolitem action='Preferences' />"
+		"  </toolbar>"
+		"</ui>";
+
+	m_refUIManager->add_ui_from_string(ui_info);
+
+	m_ptrMenubar = static_cast<Gtk::MenuBar*> (m_refUIManager->get_widget("/Menubar"));
+
+	return (m_ptrMenubar != 0);
+}
+
+gboolean Window::create_toolbar() {
+	m_ptrToolbar = static_cast<Gtk::Toolbar*> (m_refUIManager->get_widget("/Toolbar"));
+	m_ptrToolbar->set_show_arrow(false);
+	m_ptrToolbar->set_toolbar_style(Gtk::TOOLBAR_ICONS);
+
+	return (m_ptrToolbar != 0);
+}
+gboolean Window::create_modulebar() {
+	m_ptrModulebar = Gtk::manage(new ModuleBar);
+
+	return true;
+}
+
+void  Window::add_module_button(ustring plugin_id,ustring image_path, ustring str_label) {
+    Gtk::Image *image = Gtk::manage(new Gtk::Image(image_path));
+
+    // create Togglebutton
+    Gtk::ToggleButton *button = Gtk::manage(new Gtk::ToggleButton());
+    button->add(*image);
+    button->set_relief(Gtk::RELIEF_NONE);
+
+    // create label
+    Gtk::Label *label = Gtk::manage(new Gtk::Label(str_label));
+
+    m_ptrModulebar->add_module(button, label);
+
+
+    button->signal_clicked().connect(sigc::bind<ustring>(action_plugin_button, plugin_id));
+}
+
+Window::~Window() {
+	// since gtk is managing all widgets nothing to do here
+}
+
+}
