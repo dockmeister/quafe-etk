@@ -30,7 +30,7 @@ public:
 	}
 
 	ustring plugin_id() const {
-		return "skilltraining";
+		return "charinfo";
 	}
 
 	ustring plugin_icon_path() const {
