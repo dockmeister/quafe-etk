@@ -16,7 +16,8 @@
 namespace Quafe {
 
 // ----------------------------------------------------------------------------------------
-ModuleBar::ModuleBar() {
+ModuleBar::ModuleBar() :
+	button_active(0), signal_handler_running(false) {
 	// remove all childs from Gtk::Frame
 	remove();
 	m_refCssProvider = Gtk::CssProvider::create();
@@ -33,12 +34,54 @@ ModuleBar::ModuleBar() {
 	set_shadow_type(Gtk::SHADOW_ETCHED_OUT);
 }
 
-void ModuleBar::add_module(Gtk::ToggleButton *b, Gtk::Label *l) {
-	button_list.push_back(b);
-	l->override_color(Gdk::RGBA("white"), Gtk::STATE_FLAG_NORMAL);
+ModuleBar::~ModuleBar() {
 
-	m_vbox->pack_start(*b, 0, 0);
-	m_vbox->pack_start(*l, 0, 0);
+}
+
+void ModuleBar::pre_plugin_button_clicked(Gtk::ToggleButton *button_clicked, ustring plugin_id) {
+	if(signal_handler_running)
+		return;
+
+	signal_handler_running = true;
+
+	if(button_clicked == button_active) {
+		button_clicked->set_active(true);
+		signal_handler_running = false;
+		return;
+	}
+
+	if(!action_plugin_requested(plugin_id)) {
+		button_clicked->set_active(false);
+		signal_handler_running = false;
+		return;
+	}
+
+	if(button_active) {
+		button_active->set_active(false);
+	}
+
+	button_clicked->set_active(true);
+	button_active = button_clicked;
+
+	signal_handler_running = false;
+}
+
+void ModuleBar::add_plugin_button(ustring plugin_id,ustring image_path, ustring str_label) {
+    Gtk::Image *image = Gtk::manage(new Gtk::Image(image_path));
+    Gtk::Label *label = Gtk::manage(new Gtk::Label(str_label));
+    label->override_color(Gdk::RGBA("white"), Gtk::STATE_FLAG_NORMAL);
+
+    Gtk::ToggleButton *button = Gtk::manage(new Gtk::ToggleButton);
+    button->add(*image);
+    button->set_relief(Gtk::RELIEF_NONE);
+    button->signal_toggled().connect(
+    		sigc::bind<Gtk::ToggleButton*, ustring>(
+    				sigc::mem_fun(this, &ModuleBar::pre_plugin_button_clicked), button, plugin_id));
+
+    button_list.push_back(button);
+
+	m_vbox->pack_start(*button, 0, 0);
+	m_vbox->pack_start(*label, 0, 0);
 
 	show_all();
 }
@@ -75,7 +118,6 @@ void ModuleBar::change_style() {
 		(*it)->get_style_context()->add_provider(m_refCssProvider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	}
 
-	button_list.clear();
 }
 
 // ----------------------------------------------------------------------------------------------------------

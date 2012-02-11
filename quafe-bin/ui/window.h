@@ -35,12 +35,9 @@ protected:
 	~Window();
 
 	gboolean create_window();
-	void add_module_button(ustring plugin_id, ustring image_path, ustring str_label);
-
 
 	// boost functions
 	boost::function<void ()> on_action_file_quit;
-	boost::function<void (ustring plugin_id)> action_plugin_button;
 	boost::function<void ()> action_preferences;
 
 private:

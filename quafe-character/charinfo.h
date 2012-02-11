@@ -1,5 +1,5 @@
 /*
- * character.h
+ * charinfo.h
  *
  *  Created on: 07.02.2012
  *      Author: cn
@@ -18,10 +18,10 @@
  */
 namespace Quafe {
 namespace Plugin {
-class PluginCharacter : public PluginBase {
+class PluginCharacterInfo : public PluginBase {
 public:
-	PluginCharacter();
-	virtual ~PluginCharacter();
+	PluginCharacterInfo();
+	virtual ~PluginCharacterInfo();
 
 	void show(Gtk::Widget &wg);
 
@@ -30,7 +30,7 @@ public:
 	}
 
 	ustring plugin_id() const {
-		return "character";
+		return "charinfo";
 	}
 
 	ustring plugin_icon_path() const {
@@ -38,11 +38,11 @@ public:
 	}
 
 	ustring plugin_title() const {
-		return "Skill Training";
+		return "Character Info";
 	}
 
 	ustring plugin_description() const {
-		return "Skill Training";
+		return "Assets, Wallet Journal and more";
 	}
 };
 
@@ -50,4 +50,4 @@ public:
 }
 }
 
-#endif /* CHARACTER_H_ */
+#endif

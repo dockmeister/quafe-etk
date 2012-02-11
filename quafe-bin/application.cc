@@ -18,7 +18,7 @@ Application::Application() :
 	m_plugin_current(0) {
 	// bind actions before creating the window content
 	app_window.on_action_file_quit = boost::bind(&Application::quit, this);
-	app_window.action_plugin_button = boost::bind(&Application::toggle_plugin, this, _1);
+	app_window.m_ptrModulebar->action_plugin_requested = boost::bind(&Application::toggle_plugin, this, _1);
 
 	app_window.create_window();
 }
@@ -40,7 +40,7 @@ void Application::quit() {
 
 // ------------------------------------------------------------------------------------------
 // Plugin methods0x798150
-void Application::toggle_plugin(ustring plugin_id) {
+gboolean Application::toggle_plugin(ustring plugin_id) {
 	PluginBase *req_plg = 0;
 	PluginList::iterator it = m_plugin_list.begin();
 	for (; it != m_plugin_list.end(); ++it) {
@@ -52,12 +52,12 @@ void Application::toggle_plugin(ustring plugin_id) {
 
 	if (req_plg == 0) {
 		LOG(L_ERROR) << "Unknown plugin '" << plugin_id << "' requested";
-		return;
+		return false;
 	}
 
 	if (req_plg == m_plugin_current) {
 		LOG(L_DEBUG) << "Plugin '" << plugin_id << "' already loaded.";
-		return;
+		return false;
 	}
 
 	if (m_plugin_current == 0 || (m_plugin_current && m_plugin_current->close())) {
@@ -67,7 +67,11 @@ void Application::toggle_plugin(ustring plugin_id) {
 		app_window.m_refContentFrame.show_all_children(true);
 
 		app_window.set_focus(app_window.m_refContentFrame);
+
+		return true;
 	}
+
+	return false;
 }
 
 void Application::plugins_create() {
@@ -77,7 +81,7 @@ void Application::plugins_create() {
 		(*it).ptr = (*it).create();
 		(*it).plugin_id = (*it).ptr->plugin_id();
 
-		app_window.add_module_button((*it).ptr->plugin_id(), (*it).ptr->plugin_icon_path(), (*it).ptr->plugin_title());
+		app_window.m_ptrModulebar->add_plugin_button((*it).ptr->plugin_id(), (*it).ptr->plugin_icon_path(), (*it).ptr->plugin_title());
 
 		LOG(L_NOTICE) << "Plugin '" << (*it).ptr->plugin_id() << "' loaded.";
 	}
