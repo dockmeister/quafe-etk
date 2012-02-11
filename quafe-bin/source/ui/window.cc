@@ -20,7 +20,7 @@ namespace Quafe {
 
 Window::Window() {
 	set_title("Quafe - eve tool kit");
-
+	m_ptrModulebar = Gtk::manage(new ModuleBar);
 }
 
 gboolean Window::create_window() {
@@ -94,26 +94,9 @@ gboolean Window::create_toolbar() {
 	return (m_ptrToolbar != 0);
 }
 gboolean Window::create_modulebar() {
-	m_ptrModulebar = Gtk::manage(new ModuleBar);
+
 
 	return true;
-}
-
-void  Window::add_module_button(ustring plugin_id,ustring image_path, ustring str_label) {
-    Gtk::Image *image = Gtk::manage(new Gtk::Image(image_path));
-
-    // create Togglebutton
-    Gtk::ToggleButton *button = Gtk::manage(new Gtk::ToggleButton());
-    button->add(*image);
-    button->set_relief(Gtk::RELIEF_NONE);
-
-    // create label
-    Gtk::Label *label = Gtk::manage(new Gtk::Label(str_label));
-
-    m_ptrModulebar->add_module(button, label);
-
-
-    button->signal_clicked().connect(sigc::bind<ustring>(action_plugin_button, plugin_id));
 }
 
 Window::~Window() {

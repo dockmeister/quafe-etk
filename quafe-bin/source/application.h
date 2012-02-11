@@ -38,7 +38,7 @@ public:
 	void plugins_destroy();
 	PluginList& plugins_getlist() {return m_plugin_list;};
 
-	void toggle_plugin(ustring plugin_id);
+	gboolean toggle_plugin(ustring plugin_id);
 protected:
 	Window app_window;
 
