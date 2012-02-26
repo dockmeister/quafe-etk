@@ -17,42 +17,59 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "application.h"
-#include "log.h"
 
+#include "preferences.h"
 #include <boost/bind.hpp>
+#include <glibmm/exception.h>
 #include <gtkmm/main.h>
 #include <gtkmm/togglebutton.h>
 
 namespace Quafe {
 
+// ******************************************************************
+// Application class control
 Application::Application() :
 	m_plugin_current(0) {
+
 	// bind actions before creating the window content
-	app_window.on_action_file_quit = boost::bind(&Application::quit, this);
+	app_window.action_quit = boost::bind(&Application::quit, this);
+	app_window.action_preferences = boost::bind(&Preferences::show_settings, Preferences::instance());
 	app_window.m_ptrModulebar->action_plugin_requested = boost::bind(&Application::toggle_plugin, this, _1);
 
 	app_window.create_window();
 }
 
 Application::~Application() {
-	plugins_destroy();
+	m_plugin_current = 0;
+	PluginList::iterator it = m_plugin_list.begin();
+	for (; it != m_plugin_list.end(); it++) {
+		ustring plugin_info = (*it).ptr->plugin_id();
+
+		(*it).destroy((*it).ptr);
+		(*it).ptr = 0;
+
+		LOG(L_NOTICE) << "Plugin '" << plugin_info << "' unloaded.";
+	}
+
+	m_plugin_list.clear();
 }
 
-void Application::run(Gtk::Main &kit) {
+// *******************************************************************
+// Application run/quit
+void Application::run() {
+	Gtk::Main *g_main = Gtk::Main::instance();
 	app_window.show_all();
-	kit.run(app_window);
 
+	g_main->run(app_window);
 }
 
 void Application::quit() {
-	LOG(L_NOTICE) << "quafe-etk shutting down..." << m_plugin_list.size();
+	LOG(L_NOTICE) << "quafe-etk shutting down...";
 	app_window.hide();
 }
-
-// ------------------------------------------------------------------------------------------
-// Plugin methods0x798150
+// *******************************************************************
+// Plugin methods
 gboolean Application::toggle_plugin(ustring plugin_id) {
 	PluginBase *req_plg = 0;
 	PluginList::iterator it = m_plugin_list.begin();
@@ -87,7 +104,8 @@ gboolean Application::toggle_plugin(ustring plugin_id) {
 	return false;
 }
 
-void Application::plugins_create() {
+void Application::load_plugins(const PluginList &plugin_list) {
+	m_plugin_list = plugin_list;
 	PluginList::iterator it = m_plugin_list.begin();
 	for (; it != m_plugin_list.end(); it++) {
 		// create plugin and init
@@ -98,20 +116,5 @@ void Application::plugins_create() {
 
 		LOG(L_NOTICE) << "Plugin '" << (*it).ptr->plugin_id() << "' loaded.";
 	}
-}
-
-void Application::plugins_destroy() {
-	m_plugin_current = 0;
-	PluginList::iterator it = m_plugin_list.begin();
-	for (; it != m_plugin_list.end(); it++) {
-		ustring plugin_info = (*it).ptr->plugin_id();
-
-		(*it).destroy((*it).ptr);
-		(*it).ptr = 0;
-
-		LOG(L_NOTICE) << "Plugin '" << plugin_info << "' unloaded.";
-	}
-
-	m_plugin_list.clear();
 }
 }

@@ -20,15 +20,15 @@
 #ifndef QUAFE_ETK_H_
 #define QUAFE_ETK_H_
 
-#define QUAFE_NAME "quafe-etk"
-#define QUAFE_STRING "quafe-etk 0.1.0+devel"
-#define QUAFE_VERSION_MAJOR 0
-#define QUAFE_VERSION_MINOR 1
-#define QUAFE_VERSION_PATCH 0+devel
-#define QUAFE_VERSION "0.1.0+devel"
+#define QUAFE_NAME "@quafe_etk_NAME@"
+#define QUAFE_STRING "@quafe_etk_NAME@ @quafe_etk_VERSION_MAJOR@.@quafe_etk_VERSION_MINOR@.@quafe_etk_VERSION_PATCH@"
+#define QUAFE_VERSION_MAJOR @quafe_etk_VERSION_MAJOR@
+#define QUAFE_VERSION_MINOR @quafe_etk_VERSION_MINOR@
+#define QUAFE_VERSION_PATCH @quafe_etk_VERSION_PATCH@
+#define QUAFE_VERSION "@quafe_etk_VERSION_MAJOR@.@quafe_etk_VERSION_MINOR@.@quafe_etk_VERSION_PATCH@"
 
-#define QUAFE_PREFIX "/usr/local"
-#define QUAFE_DATADIR "/usr/local/share/quafe-etk/"
+#define QUAFE_PREFIX "@quafe_etk_PREFIX@"
+#define QUAFE_DATADIR "@quafe_etk_PREFIX@/share/quafe-etk/"
 
 #if ENABLE_NLS
 #	include <glibmm/i18n-lib.h>

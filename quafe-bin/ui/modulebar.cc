@@ -19,7 +19,7 @@
 
 
 #include "modulebar.h"
-#include "log.h"
+
 #include <gtkmm/label.h>
 #include <gtkmm/button.h>
 #include <gtkmm/image.h>

@@ -22,17 +22,22 @@
 #define APPLICATION_H_
 
 #include <quafe-etk.h>
+#include <utility.h>
 
 #include "ui/window.h"
-#include "plugin/pluginbase.h"
+#include "include/pluginbase.h"
 #include <gtkmm/main.h>
-/*
- *
- */
+#include <gtkmm/object.h>
+
 namespace Quafe {
 
+/*! \brief PluginContainer struct.
+ * 		Plugin information are stored in a PluginContainer.
+ * 		Use the function pointer 'create' and 'destroy' to handle the plugin.
+ * 		'plugin_id' should be a unique string to identify the plugin.
+ */
 struct PluginContainer {
-	Quafe::create_t *create;
+	Quafe::create_t *create; /*!< */
 	Quafe::destroy_t *destroy;
 
 	Quafe::PluginBase *ptr;
@@ -41,23 +46,39 @@ struct PluginContainer {
 
 typedef std::list<PluginContainer> PluginList;
 
-class Application {
+/*! \brief Main application class.
+ * 		Handles plugins, creates the window and finally runs the application.
+ */
+class Application : public Singleton<Application> {
+	friend class Singleton<Application>;
 public:
-	Application();
-	~Application();
-	void run(Gtk::Main &kit);
-	void quit();
-	void plugins_create();
-	void plugins_destroy();
-	PluginList& plugins_getlist() {return m_plugin_list;};
+	void run(); //!< runs the application
 
+	/*!\brief
+	 *
+	 * \param plugin_list
+	 */
+	void load_plugins(const PluginList & plugin_list);
+
+	/*!\brief
+	 *
+	 * \param plugin_id
+	 * \return true, if the plugin switch was successful
+	 */
 	gboolean toggle_plugin(ustring plugin_id);
 protected:
+	/**
+	 *
+	 */
+	void quit();
 	Window app_window;
 
 private:
-	PluginList m_plugin_list;
-	PluginBase *m_plugin_current;
+	Application();
+	virtual ~Application();
+
+	PluginList m_plugin_list; //!< list of plugins found
+	PluginBase *m_plugin_current; //!< current activated plugin
 };
 
 }

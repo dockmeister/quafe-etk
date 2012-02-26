@@ -22,8 +22,7 @@
 #define	MODULEBAR_H
 
 #include <quafe-etk.h>
-
-#include "../log.h"
+#include <utility.h>
 
 #include <boost/function.hpp>
 #include <gdkmm/color.h>

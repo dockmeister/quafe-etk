@@ -1,5 +1,4 @@
 /**
- *
  *  Quafe - Eve tools for linux.
  *  Copyright (C) 2012 Christoph Nikic
  *
@@ -17,21 +16,33 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef WINDOW_PREFERENCES_H_
+#define WINDOW_PREFERENCES_H_
 
-#include "log.h"
+#include <quafe-etk.h>
+#include <utility.h>
 
-std::ostringstream& Log::print(LOG_LEVEL level) {
-	m_level = level;
-	return os;
-}
+#include <boost/function.hpp>
+#include <gtkmm/window.h>
 
-Log::~Log() {
-	os << std::endl;
-	if (m_level < L_NOTICE) {
-		fprintf(stderr, "%s: %s", __TIME__, os.str().c_str());
-		fflush(stderr);
-	} else {
-		fprintf(stdout, "%s: %s", __TIME__, os.str().c_str());
-		fflush(stdout);
-	}
-}
+namespace Quafe {
+
+/*!\brief
+ *
+ */
+class WindowPreferences : public Gtk::Window {
+	friend class Preferences;
+public:
+	WindowPreferences();
+	virtual ~WindowPreferences();
+
+private:
+	Gtk::Widget *create_general_tab();
+	Gtk::Widget *create_account_tab();
+	boost::function<void ()> action_ok;
+	boost::function<void ()> action_cancel;
+	boost::function<void (ustring id, ustring key)> action_add_api_key;
+};
+
+} /* namespace Quafe */
+#endif /* WINDOW_PREFERENCES_H_ */

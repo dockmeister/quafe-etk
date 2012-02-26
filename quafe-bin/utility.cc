@@ -17,43 +17,42 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <quafe-etk.h>
-
 #include "utility.h"
-#include "application.h"
-#include "preferences.h"
 
+// ******************************************************************
+// Logging class
 
+std::ostringstream& Log::print(LOG_LEVEL level) {
+	m_level = level;
+	return os;
+}
 
+Log::~Log() {
+	time_t rawtime;
+	struct tm * timeinfo;
+	char t_buffer[80];
 
-/*!\brief
- *
- */
-int main(int argc, char **argv) {
-	Glib::init();
-	Gtk::Main kit(argc, argv);
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
 
-	Quafe::Preferences * settings = Quafe::Preferences::instance();
-	if (settings->parse_command_line(argc, argv)) {
-		return EXIT_SUCCESS;
+	strftime(t_buffer, 80, "[%x %X] ", timeinfo);
+
+	os << std::endl;
+	if (m_level < L_NOTICE) {
+		fprintf(stderr, "%s: %s", t_buffer, os.str().c_str());
+		fflush(stderr);
+	} else {
+		fprintf(stdout, "%s: %s", t_buffer, os.str().c_str());
+		fflush(stdout);
 	}
+}
 
-	LOG(L_NOTICE) << "quafe-etk starting up...";
+namespace Quafe {
+// ******************************************************************
+// Quafe Exception class
+Exception::Exception(const ustring s) :
+		s_what(s) {
 
-	settings->parse_config_file();
+}
 
-	try {
-		//
-		Quafe::PluginList plugin_list;
-		discover_plugins(plugin_list);
-
-		Quafe::Application * app = Quafe::Application::instance();
-		app->load_plugins(plugin_list);
-		app->run();
-	} catch (std::exception &e) {
-		LOG(L_CRITICAL) << e.what();
-		return EXIT_FAILURE;
-	}
-
-	return EXIT_SUCCESS;
 }

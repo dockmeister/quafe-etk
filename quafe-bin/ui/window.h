@@ -22,6 +22,7 @@
 #define WINDOW_H_
 
 #include <quafe-etk.h>
+#include <utility.h>
 
 #include "modulebar.h"
 
@@ -50,7 +51,7 @@ protected:
 	gboolean create_window();
 
 	// boost functions
-	boost::function<void ()> on_action_file_quit;
+	boost::function<void ()> action_quit;
 	boost::function<void ()> action_preferences;
 
 private:

@@ -19,9 +19,8 @@
 
 
 #include "window.h"
-#include "../log.h"
-#include <boost/bind.hpp>
 
+#include <boost/bind.hpp>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/togglebutton.h>
@@ -40,7 +39,7 @@ gboolean Window::create_window() {
 	m_refActionGroup = Gtk::ActionGroup::create();
 	m_refUIManager = Gtk::UIManager::create();
 
-	signal_hide().connect(on_action_file_quit);
+	signal_hide().connect(action_quit);
 
 
 	if (!create_menubar()) {
@@ -74,7 +73,7 @@ gboolean Window::create_window() {
 
 gboolean Window::create_menubar() {
 	m_refActionGroup->add(Gtk::Action::create("MenuFile", "_File"));
-	m_refActionGroup->add(Gtk::Action::create("Quit", Gtk::Stock::QUIT), on_action_file_quit);
+	m_refActionGroup->add(Gtk::Action::create("Quit", Gtk::Stock::QUIT), action_quit);
 	m_refActionGroup->add(Gtk::Action::create("Preferences", Gtk::Stock::PREFERENCES), action_preferences);
 
 	m_refUIManager->insert_action_group(m_refActionGroup);

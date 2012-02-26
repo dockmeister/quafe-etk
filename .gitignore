@@ -1,5 +1,5 @@
-/*/Debug/*
-/*/Release/*
-.eclipse_workspace
+*/Debug/*
+*/Release/*
 .git
-*.so
+*~
+*CMakeFiles*
