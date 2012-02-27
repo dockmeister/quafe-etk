@@ -32,6 +32,7 @@
 								<option id="gnu.cpp.compiler.option.include.paths.1731651744" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${git_work_tree}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/libs/pugixml/&quot;"/>
 									<listOptionValue builtIn="false" value="/usr/include/gtk-3.0"/>
 									<listOptionValue builtIn="false" value="/usr/include/gdk-pixbuf-2.0"/>
 									<listOptionValue builtIn="false" value="/usr/include/gtk-3.0/unix-print"/>

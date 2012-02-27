@@ -42,4 +42,10 @@
 
 using namespace Glib;
 
+enum API_CHANGE {
+	API_ADD = 0,
+	API_DELETE = 1,
+	API_REFRESH = 2
+};
+
 #endif /* QUAFE_ETK_H_ */

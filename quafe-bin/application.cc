@@ -38,6 +38,9 @@ Application::Application() :
 	app_window->m_ptrModulebar->action_plugin_requested = boost::bind(&Application::toggle_plugin, this, _1);
 
 	app_window->create_window();
+
+	//
+	Preferences::instance()->create_dialog(*app_window);
 }
 
 Application::~Application() {

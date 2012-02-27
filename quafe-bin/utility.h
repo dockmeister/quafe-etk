@@ -28,9 +28,6 @@
 #include <sstream>
 #include <time.h>
 #include <glibmm/exception.h>
-#include <boost/bind.hpp>
-#include <boost/utility.hpp>
-#include <boost/thread/once.hpp>
 
 extern "C" gboolean dir_exists(const ustring &dir);
 extern "C" gboolean make_dir(const ustring &dir);

@@ -20,28 +20,60 @@
 #define WINDOW_PREFERENCES_H_
 
 #include <quafe-etk.h>
-#include <utility.h>
 
 #include <boost/function.hpp>
-#include <gtkmm/window.h>
+#include <gtkmm/dialog.h>
+#include <gtkmm/entry.h>
+#include <gtkmm/checkbutton.h>
+#include <gtkmm/treeview.h>
+#include <gtkmm/treestore.h>
+#include <gtkmm/treemodel.h>
+#include <gtkmm/treemodelcolumn.h>
 
 namespace Quafe {
+
+/*< */
+class ApiModel : public Gtk::TreeModel::ColumnRecord {
+public:
+	Gtk::TreeModelColumn<bool> row_active;
+	Gtk::TreeModelColumn<Glib::ustring> auth_id;
+	Gtk::TreeModelColumn<Glib::ustring> auth_key;
+	Gtk::TreeModelColumn<Glib::ustring> name;
+
+	ApiModel() {
+		add(row_active);
+		add(auth_id);
+		add(auth_key);
+		add(name);
+	}
+};
 
 /*!\brief
  *
  */
-class WindowPreferences : public Gtk::Window {
+class PreferenceDialog : public Gtk::Dialog {
 	friend class Preferences;
 public:
-	WindowPreferences();
-	virtual ~WindowPreferences();
+	PreferenceDialog(const ustring &title, Gtk::Window &parent, bool modal);
+	virtual ~PreferenceDialog();
+
+protected:
+	void insert_api_row(Gtk::TreeModel::Row &row, gboolean active, ustring auth_id, ustring auth_key, ustring name);
+	virtual void on_response(int response);
+	boost::function<void (ustring id, ustring key, API_CHANGE chg)> action_add_api_key;
+
+	Gtk::TreeView m_TreeView;
+	ApiModel m_columns;
+	Glib::RefPtr<Gtk::TreeStore> m_refTreeModel;
 
 private:
 	Gtk::Widget *create_general_tab();
 	Gtk::Widget *create_account_tab();
-	boost::function<void ()> action_ok;
-	boost::function<void ()> action_cancel;
-	boost::function<void (ustring id, ustring key)> action_add_api_key;
+
+	void add_api_button_clicked(API_CHANGE e);
+
+	Gtk::Entry *m_entry_auth_id, *m_entry_auth_key;
+
 };
 
 } /* namespace Quafe */

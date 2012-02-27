@@ -19,9 +19,10 @@
 
 #include <quafe-etk.h>
 
+#include "preferences.h"
 #include "utility.h"
 #include "application.h"
-#include "preferences.h"
+
 
 /*!\brief
  *

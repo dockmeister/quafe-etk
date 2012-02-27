@@ -3,7 +3,7 @@ include_directories(. /usr/include/ ../libs/pugixml/ ${GTKMM_INCLUDE_DIRS} ${Boo
 
 add_executable (quafe-bin 
 	main.cc application.cc preferences.cc utility.cc
-	ui/modulebar.cc ui/window_preferences.cc ui/window.cc
+	ui/modulebar.cc ui/window_preferences.cc ui/window.cc ui/dialogs.cc
 ) 
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -O3 -Wall -fmessage-length=0 -pthread -DSEAL_ENABLE")

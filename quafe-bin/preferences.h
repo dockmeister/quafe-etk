@@ -22,9 +22,9 @@
 
 #include <quafe-etk.h>
 
-#include "ui/window_preferences.h"
 #include "include/pluginbase.h"
 #include "include/singleton.h"
+#include <gtkmm/dialog.h>
 #include <boost/any.hpp>
 
 namespace Quafe {
@@ -111,6 +111,12 @@ protected:
 		ValueType *s = boost::any_cast<ValueType>(&(instance()->m_settings[option]));
 		return *s;
 	}
+
+	/*< creates the dialog. called from application after the main window is created */
+	void create_dialog(Gtk::Window &window);
+
+	/*< applies changes to apis. */
+	void apply_api_changes(const ustring &auth_id, const ustring &auth_key, API_CHANGE chg);
 private:
 	Preferences();
 	virtual ~Preferences();
@@ -121,7 +127,7 @@ private:
 	PreferenceMap m_settings;
 
 
-	WindowPreferences sett_window;
+	Gtk::Dialog *m_dialog;
 
 
 };

@@ -8,6 +8,9 @@
 #ifndef SINGLETON_H_
 #define SINGLETON_H_
 
+#include <boost/noncopyable.hpp>
+#include <boost/thread/once.hpp>
+
 namespace Quafe {
 
 /*! \brief Singleton implementation

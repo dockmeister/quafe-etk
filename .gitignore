@@ -9,3 +9,4 @@ tests/bin/*
 tests/share/*
 install_manifest.txt
 CMakeCache.txt
+cmake_install.cmake

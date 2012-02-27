@@ -18,10 +18,14 @@
 
 #include "preferences.h"
 
+#include "ui/dialogs.h"
+#include "ui/window_preferences.h"
+#include "utility.h"
 #include <pwd.h>
 #include <iostream>
 #include <fstream>
 #include <dlfcn.h>
+#include <boost/bind.hpp>
 #include <glibmm/fileutils.h>
 #include <glibmm/regex.h>
 #include <pugixml.hpp>
@@ -45,7 +49,88 @@ Preferences::~Preferences() {
 }
 
 void Preferences::show_settings() {
-	sett_window.show();
+	int response = m_dialog->run();
+
+	//[ apply and save settings
+	if(response == Gtk::RESPONSE_APPLY) {
+		save_config_file();
+	}
+	//]
+}
+
+void Preferences::create_dialog(Gtk::Window &window) {
+	PreferenceDialog *dialog = new PreferenceDialog("Preferences", window, true);
+	dialog->action_add_api_key = boost::bind(&Preferences::apply_api_changes, this, _1, _2, _3);
+
+	//[ insert account info into dialog treestore
+	AccountInfoList &acc_list = get_nonconst<AccountInfoList>("accounts");
+	AccountInfoList::iterator it = acc_list.begin();
+	for(; it != acc_list.end(); ++it) {
+		AccountInfo acc_info = *it;
+		Gtk::TreeModel::Row row = *(dialog->m_refTreeModel->append());
+		dialog->insert_api_row(row, acc_info.active, acc_info.authid, acc_info.authkey, ustring(""));
+
+		Gtk::TreeModel::Row child = *(dialog->m_refTreeModel->append(row.children()));
+		dialog->insert_api_row(child, acc_info.characters[0].first, ustring(""), ustring(""), acc_info.characters[0].second);
+
+		child = *(dialog->m_refTreeModel->append(row.children()));
+		dialog->insert_api_row(child, acc_info.characters[1].first, ustring(""), ustring(""), acc_info.characters[1].second);
+
+		child = *(dialog->m_refTreeModel->append(row.children()));
+		dialog->insert_api_row(child, acc_info.characters[2].first, ustring(""), ustring(""), acc_info.characters[2].second);
+	}
+	//]
+
+	m_dialog = dialog;
+}
+
+void Preferences::apply_api_changes(const ustring &auth_id, const ustring &auth_key, API_CHANGE chg) {
+	if (chg == API_ADD) {
+		//[ check if auth_id already exists
+		AccountInfoList &acc_list = get_nonconst<AccountInfoList> ("accounts");
+		AccountInfoList::iterator it = acc_list.begin();
+		for (; it != acc_list.end(); ++it) {
+			if ((*it).authid.compare(auth_id) == 0) {
+				show_error_dialog("Failed to add API Key.", "The API Id already exists.");
+				return;
+			}
+		}
+		//]
+
+		//[@todo: check if api is valid and fetch characters (make it sensitive/no async here)
+		//]
+
+		//[ insert AccountInfo into settings
+		AccountInfo acc_info = { true, auth_id, auth_key };
+		acc_info.characters[0] = std::make_pair<gboolean, ustring>(true, "TestChar1");
+		acc_info.characters[1] = std::make_pair<gboolean, ustring>(false, "TestChar2");
+		acc_info.characters[2] = std::make_pair<gboolean, ustring>(false, "TestChar3");
+
+		acc_list.push_back(acc_info);
+		//]
+
+		//[ apply changes to the Dialog
+		PreferenceDialog *dialog = static_cast<PreferenceDialog *> (m_dialog);
+		Gtk::TreeModel::Row row = *(dialog->m_refTreeModel->append());
+		dialog->insert_api_row(row, acc_info.active, acc_info.authid, acc_info.authkey, ustring(""));
+
+		Gtk::TreeModel::Row child = *(dialog->m_refTreeModel->append(row.children()));
+		dialog->insert_api_row(child, acc_info.characters[0].first, ustring(""), ustring(""), acc_info.characters[0].second);
+
+		child = *(dialog->m_refTreeModel->append(row.children()));
+		dialog->insert_api_row(child, acc_info.characters[1].first, ustring(""), ustring(""), acc_info.characters[1].second);
+
+		child = *(dialog->m_refTreeModel->append(row.children()));
+		dialog->insert_api_row(child, acc_info.characters[2].first, ustring(""), ustring(""), acc_info.characters[2].second);
+		//]
+
+		return;
+	}
+
+	if (chg == API_DELETE) {
+		show_error_dialog("Function not supported yet", "Delete the Account manually by editing the config file.");
+		return;
+	}
 }
 
 // ******************************************************************
@@ -56,6 +141,7 @@ gboolean Preferences::parse_command_line(int argc, char **argv) {
 }
 
 gboolean Preferences::parse_config_file() {
+	//[ load or create configfile
 	ustring cfg_path = get<ustring> ("cli.config-path");
 	ustring cfg_file = cfg_path + "quafe-etk.cfg";
 
@@ -71,32 +157,56 @@ gboolean Preferences::parse_config_file() {
 		LOG(L_WARNING) << "Failed to load configuration: " << result.description();
 		return false;
 	}
+	//]
 
+	//[ iterate over config file, check if its a valid preferences and apply
 	pugi::xml_node root = doc.document_element();
 	pugi::xml_node_iterator it = root.begin();
-	for(; it != root.end(); ++it) {
-		// process account settings
+	for (; it != root.end(); ++it) {
+		//[ Parse account settings
 		if (Regex::match_simple("^accounts$", it->name())) {
-			continue;
-		}
+			AccountInfoList &acc_list = get_nonconst<AccountInfoList>("accounts");
+			pugi::xml_node_iterator acc_it = it->begin();
+			for(; acc_it != it->end(); ++acc_it) {
+				AccountInfo aci;
+				aci.active  = acc_it->attribute("active").as_bool();
+				aci.authid  = acc_it->child("authid").child_value();
+				aci.authkey = acc_it->child("authkey").child_value();
 
-		// process plugin settings
-		if (Regex::match_simple("^plugins$", ustring(it->name()))) {
-			pugi::xml_node_iterator pl_it = it->begin();
-			for(; pl_it != it->end(); ++pl_it) {
-				PluginInfoList &pl_list = get_nonconst<PluginInfoList>("plugins");
-				PluginInfoList::iterator search = pl_list.begin();
-				for(; search != pl_list.end(); ++search) {
-					if((*search).plugin_file.compare(pl_it->child_value()) == 0) {
-						(*search).active = (gboolean) pl_it->attribute("active").as_bool();
-					}
-				}
+				pugi::xml_node chara = acc_it->child("authkey").next_sibling();
+				aci.characters[0] = std::make_pair<gboolean, ustring>(chara.attribute("active").as_bool(), chara.child_value());
+				chara = chara.next_sibling();
+				aci.characters[1] = std::make_pair<gboolean, ustring>(chara.attribute("active").as_bool(), chara.child_value());
+				chara = chara.next_sibling();
+				aci.characters[2] = std::make_pair<gboolean, ustring>(chara.attribute("active").as_bool(), chara.child_value());
+
+				acc_list.push_back(aci);
 			}
 			continue;
 		}
+		//]
 
+		//[ Parse plugin preferences
+		if (Regex::match_simple("^plugins$", ustring(it->name()))) {
+			pugi::xml_node_iterator pl_it = it->begin();
+			for (; pl_it != it->end(); ++pl_it) {
+				//[ Check if the plugin was discovered at startup and set it ?active?
+				PluginInfoList &pl_list = get_nonconst<PluginInfoList> ("plugins");
+				PluginInfoList::iterator search = pl_list.begin();
+				for (; search != pl_list.end(); ++search) {
+					if ((*search).plugin_file.compare(pl_it->child_value()) == 0) {
+						(*search).active = (gboolean) pl_it->attribute("active").as_bool();
+					}
+				}
+				//]
+			}
+			continue;
+		}
+		//]
+
+		//[ All other preferences
 		PreferenceMap::iterator pref = m_settings.find(ustring(it->name()));
-		if(pref == m_settings.end()) {
+		if (pref == m_settings.end()) {
 			// unknown preference in xml file
 			continue;
 		}
@@ -106,8 +216,10 @@ gboolean Preferences::parse_config_file() {
 
 		if ((*pref).second.type() == typeid(ustring))
 			(*pref).second = (ustring) it->child_value();
+		//]
 
 	}
+	//]
 	return true;
 }
 
@@ -121,7 +233,7 @@ gboolean Preferences::save_config_file() {
 		if (Regex::match_simple("^cli", (*it).first))
 			continue;
 
-		// process account settings
+		//[ process account settings
 		if (Regex::match_simple("^accounts$", (*it).first)) {
 			pugi::xml_node accounts = root.append_child("accounts");
 
@@ -144,8 +256,9 @@ gboolean Preferences::save_config_file() {
 
 			continue;
 		}
+		//]
 
-		// process plugin settings
+		//[ process plugin settings
 		if (Regex::match_simple("^plugins$", (*it).first)) {
 			pugi::xml_node plugins = root.append_child("plugins");
 
@@ -159,6 +272,7 @@ gboolean Preferences::save_config_file() {
 
 			continue;
 		}
+		//]
 
 		// general settings
 		if ((*it).second.type() == typeid(gboolean))
@@ -233,6 +347,7 @@ ustring Preferences::discover_config_path() {
 	struct passwd* user_info = getpwuid(user_id);
 
 	if (user_info && user_info->pw_dir) {
+		//@todo: change to dir_exists();
 		try {
 			Dir home_dir(user_info->pw_dir);
 			def_cfgdir = user_info->pw_dir;
