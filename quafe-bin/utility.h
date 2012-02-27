@@ -1,5 +1,4 @@
 /**
- *
  *  Quafe - Eve tools for linux.
  *  Copyright (C) 2012 Christoph Nikic
  *
