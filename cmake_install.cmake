@@ -2,7 +2,7 @@
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  SET(CMAKE_INSTALL_PREFIX "/usr/local")
+  SET(CMAKE_INSTALL_PREFIX "/home/cn/coding/quafe-etk.git/tests/")
 ENDIF(NOT DEFINED CMAKE_INSTALL_PREFIX)
 STRING(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,6 +34,7 @@ ENDIF(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 
 IF(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
+  INCLUDE("/home/cn/coding/quafe-etk.git/libs/pugixml/cmake_install.cmake")
   INCLUDE("/home/cn/coding/quafe-etk.git/quafe-bin/cmake_install.cmake")
   INCLUDE("/home/cn/coding/quafe-etk.git/quafe-skilltraining/cmake_install.cmake")
 

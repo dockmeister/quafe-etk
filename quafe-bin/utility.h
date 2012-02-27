@@ -33,63 +33,13 @@
 #include <boost/utility.hpp>
 #include <boost/thread/once.hpp>
 
-/*! \brief Singleton implementation
- *
- *	\usage
- *		@todo: write usage documentation
- */
-template<typename ImplT>
-class Singleton : boost::noncopyable {
-public:
-	static ImplT * instance(); //!< returns the one global instance of Singleton<ImplT>
-
-protected:
-	Singleton() {};
-	virtual ~Singleton() {};
-
-private:
-	static ImplT * m_instance;
-	static boost::once_flag o_flag;
-
-	static void init();
-
-	/*!	\brief
-	 *
-	 */
-	class guard {
-	public:
-		~guard() {
-			if (Singleton<ImplT>::m_instance != 0)
-				delete Singleton<ImplT>::m_instance;
-		}
-	};
-	friend class guard;
-};
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-template<typename ImplT>
-boost::once_flag Singleton<ImplT>::o_flag = BOOST_ONCE_INIT;
-
-template<typename ImplT>
-ImplT * Singleton<ImplT>::m_instance = 0;
-
-template<typename ImplT>
-void Singleton<ImplT>::init() {
-	static guard g;
-	m_instance = new ImplT;
-}
-
-template<typename ImplT>
-ImplT * Singleton<ImplT>::instance() {
-	boost::call_once(o_flag, Singleton<ImplT>::init);
-	return m_instance;
-}
-#endif
+extern "C" gboolean dir_exists(const ustring &dir);
+extern "C" gboolean make_dir(const ustring &dir);
+extern "C" gboolean file_exists(const ustring &dir);
 
 //
 enum LOG_LEVEL {
 	L_CRITICAL = 1 << 0, L_ERROR = 1 << 1, L_WARNING = 1 << 2, L_NOTICE = 1 << 3, L_DEBUG = 1 << 4
-
 };
 
 /** Simple logging class

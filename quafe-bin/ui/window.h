@@ -49,6 +49,7 @@ protected:
 	~Window();
 
 	gboolean create_window();
+	gboolean show_plugin_widget(Gtk::Widget &widget);
 
 	// boost functions
 	boost::function<void ()> action_quit;

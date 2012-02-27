@@ -24,14 +24,15 @@
 #include <dlfcn.h>
 #include <glibmm/fileutils.h>
 #include <glibmm/regex.h>
+#include <pugixml.hpp>
 
 namespace Quafe {
 
 Preferences::Preferences() {
 	m_settings["cli.config-path"] = discover_config_path();
 	m_settings["cli.plugin-path"] = discover_plugin_path();
-	m_settings["general.minimized"] = false;
-	m_settings["general.fullscreen"] = true;
+	m_settings["minimized"] = (gboolean) false;
+	m_settings["fullscreen"] = (gboolean) true;
 
 	AccountInfoList ac_list;
 	m_settings["accounts"] = ac_list;
@@ -55,52 +56,136 @@ gboolean Preferences::parse_command_line(int argc, char **argv) {
 }
 
 gboolean Preferences::parse_config_file() {
-	return false;
-}
+	ustring cfg_path = get<ustring> ("cli.config-path");
+	ustring cfg_file = cfg_path + "quafe-etk.cfg";
 
-gboolean Preferences::save_config_file() {
-	using namespace boost::property_tree;
-	ptree pt;
+	if (!dir_exists(cfg_path) || !file_exists(cfg_file)) {
+		LOG(L_NOTICE) << "Configuration file not found. Writing default config to: '" << cfg_file << "'";
+		return save_config_file();
+	}
 
-	PreferenceMap::const_iterator it = m_settings.begin();
-	for(; it != m_settings.end(); ++it) {
-		// we dont need cli settings in the config file
-		if(Regex::match_simple("^cli", (*it).first))
-			continue;
+	pugi::xml_document doc;
+	pugi::xml_parse_result result = doc.load_file(cfg_file.c_str());
 
+	if (!result) {
+		LOG(L_WARNING) << "Failed to load configuration: " << result.description();
+		return false;
+	}
+
+	pugi::xml_node root = doc.document_element();
+	pugi::xml_node_iterator it = root.begin();
+	for(; it != root.end(); ++it) {
 		// process account settings
-		if(Regex::match_simple("^accounts$", (*it).first)) {
-			AccountInfoList ac_list = boost::any_cast<AccountInfoList>((*it).second);
-			AccountInfoList::const_iterator ac_it = ac_list.begin();
-			for(; ac_it != ac_list.end(); ++ac_it) {
-				ptree &node = pt.add("quafe-etk.accounts.account", "");
-				AccountInfo ac_info = (*ac_it);
-				node.add("<xmlattr>.active", ac_info.active);
-				node.add("authid", ac_info.authid);
-				node.add("authkey", ac_info.authkey);
-				node.add("character", ac_info.characters[0].first).add("<xmlattr>.active", ac_info.characters[0].second);
-				node.add("character", ac_info.characters[1].first).add("<xmlattr>.active", ac_info.characters[1].second);
-				node.add("character", ac_info.characters[2].first).add("<xmlattr>.active", ac_info.characters[2].second);
-			}
+		if (Regex::match_simple("^accounts$", it->name())) {
+			continue;
 		}
 
 		// process plugin settings
-		if(Regex::match_simple("^plugins$", (*it).first)) {
+		if (Regex::match_simple("^plugins$", ustring(it->name()))) {
+			pugi::xml_node_iterator pl_it = it->begin();
+			for(; pl_it != it->end(); ++pl_it) {
+				PluginInfoList &pl_list = get_nonconst<PluginInfoList>("plugins");
+				PluginInfoList::iterator search = pl_list.begin();
+				for(; search != pl_list.end(); ++search) {
+					if((*search).plugin_file.compare(pl_it->child_value()) == 0) {
+						(*search).active = (gboolean) pl_it->attribute("active").as_bool();
+					}
+				}
+			}
+			continue;
+		}
 
+		PreferenceMap::iterator pref = m_settings.find(ustring(it->name()));
+		if(pref == m_settings.end()) {
+			// unknown preference in xml file
+			continue;
+		}
+
+		if ((*pref).second.type() == typeid(gboolean))
+			(*pref).second = (gboolean) it->attribute("value").as_bool();
+
+		if ((*pref).second.type() == typeid(ustring))
+			(*pref).second = (ustring) it->child_value();
+
+	}
+	return true;
+}
+
+gboolean Preferences::save_config_file() {
+	pugi::xml_document doc;
+	pugi::xml_node root = doc.append_child("quafe-etk");
+
+	PreferenceMap::const_iterator it = m_settings.begin();
+	for (; it != m_settings.end(); ++it) {
+		// we dont need cli settings in the config file
+		if (Regex::match_simple("^cli", (*it).first))
+			continue;
+
+		// process account settings
+		if (Regex::match_simple("^accounts$", (*it).first)) {
+			pugi::xml_node accounts = root.append_child("accounts");
+
+			AccountInfoList ac_list = boost::any_cast<AccountInfoList>((*it).second);
+			AccountInfoList::const_iterator ac_it = ac_list.begin();
+			for (; ac_it != ac_list.end(); ++ac_it) {
+				pugi::xml_node acc = accounts.append_child("account");
+
+				AccountInfo ac_info = (*ac_it);
+				acc.append_attribute("active") = ac_info.active;
+				acc.append_child("authid").append_child(pugi::node_pcdata).set_value(ac_info.authid.c_str());
+				acc.append_child("authkey").append_child(pugi::node_pcdata).set_value(ac_info.authkey.c_str());
+
+				for (gint i = 0; i < 3; i++) {
+					pugi::xml_node chara = acc.append_child("character");
+					chara.append_child(pugi::node_pcdata).set_value((ac_info.characters[i].second).c_str());
+					chara.append_attribute("active") = ac_info.characters[i].first;
+				}
+			}
+
+			continue;
+		}
+
+		// process plugin settings
+		if (Regex::match_simple("^plugins$", (*it).first)) {
+			pugi::xml_node plugins = root.append_child("plugins");
+
+			PluginInfoList p_list = boost::any_cast<PluginInfoList>((*it).second);
+			PluginInfoList::iterator it = p_list.begin();
+			for (; it != p_list.end(); ++it) {
+				pugi::xml_node pl = plugins.append_child("plugin");
+				pl.append_child(pugi::node_pcdata).set_value(((*it).plugin_file).c_str());
+				pl.append_attribute("active") = (*it).active;
+			}
+
+			continue;
+		}
+
+		// general settings
+		if ((*it).second.type() == typeid(gboolean))
+			root.append_child((*it).first.c_str()).append_attribute("value") = get<gboolean> ((*it).first);
+
+		if ((*it).second.type() == typeid(ustring))
+			root.append_child((*it).first.c_str()).append_child(pugi::node_pcdata).set_value(get<ustring> ((*it).first).c_str());
+	}
+
+	ustring cfg_path = get<ustring> ("cli.config-path");
+	ustring cfg_file = cfg_path + "quafe-etk.cfg";
+
+	// check if directory exists
+	if (!dir_exists(cfg_path)) {
+		// try to create directory
+		if (!make_dir(cfg_path)) {
+			LOG(L_WARNING) << "could not create directory '" << cfg_path << "'";
+			return false;
 		}
 	}
 
-	return false;
+	doc.save_file(cfg_file.c_str());
+	return true;
 }
 
-// ******************************************************************
-// private helper methods
-/*!\brief
- *
- * \param plugin_list
- */
-void Preferences::discover_plugins() {
-	ustring plugin_path = Quafe::Preferences::get<Glib::ustring>("plugin-path");
+void Preferences::parse_plugin_dir() {
+	ustring plugin_path = Quafe::Preferences::get<ustring>("cli.plugin-path");
 
 	Dir plugin_dir(plugin_path);
 
@@ -131,15 +216,17 @@ void Preferences::discover_plugins() {
 			LOG(L_ERROR) << "Cannot load symbol destroy: " << dlsym_error;
 			continue;
 		}
-
 		// plugin successfully loaded, push to plugin list
-		Quafe::PluginContainer p_c = { create_plugin, destroy_plugin };
-		plugin_list.push_back(p_c);
+		Quafe::PluginInfo p_c = { plugin_name, true, create_plugin, destroy_plugin, 0, "" };
+		boost::any_cast<PluginInfoList &>(m_settings["plugins"]).push_back(p_c);
 	}
 
-	LOG(L_NOTICE) << "Plugin path: " << plugin_path << " (" << plugin_list.size() << " plugins discovered)";
+	LOG(L_NOTICE) << "Plugin path: " << plugin_path << " (" << boost::any_cast<PluginInfoList &>(m_settings["plugins"]).size()
+			<< " plugins discovered)";
 }
 
+// ******************************************************************
+// private helper methods
 ustring Preferences::discover_config_path() {
 	ustring def_cfgdir = "/tmp";
 	uid_t user_id = geteuid();

@@ -22,29 +22,14 @@
 #define APPLICATION_H_
 
 #include <quafe-etk.h>
-#include <utility.h>
 
 #include "ui/window.h"
 #include "include/pluginbase.h"
+#include "include/singleton.h"
 #include <gtkmm/main.h>
 #include <gtkmm/object.h>
 
 namespace Quafe {
-
-/*! \brief PluginContainer struct.
- * 		Plugin information are stored in a PluginContainer.
- * 		Use the function pointer 'create' and 'destroy' to handle the plugin.
- * 		'plugin_id' should be a unique string to identify the plugin.
- */
-struct PluginContainer {
-	Quafe::create_t *create; /*!< */
-	Quafe::destroy_t *destroy;
-
-	Quafe::PluginBase *ptr;
-	ustring plugin_id;
-};
-
-typedef std::list<PluginContainer> PluginList;
 
 /*! \brief Main application class.
  * 		Handles plugins, creates the window and finally runs the application.
@@ -58,7 +43,7 @@ public:
 	 *
 	 * \param plugin_list
 	 */
-	void load_plugins(const PluginList & plugin_list);
+	void load_plugins();
 
 	/*!\brief
 	 *
@@ -71,13 +56,13 @@ protected:
 	 *
 	 */
 	void quit();
-	Window app_window;
+	Window *app_window;
 
 private:
 	Application();
 	virtual ~Application();
 
-	PluginList m_plugin_list; //!< list of plugins found
+	gboolean running;
 	PluginBase *m_plugin_current; //!< current activated plugin
 };
 

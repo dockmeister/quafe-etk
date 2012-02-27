@@ -1,5 +1,12 @@
-*/Debug/*
-*/Release/*
 .git
 *~
 *CMakeFiles*
+Makefile
+*.a
+*.so
+quafe-bin/quafe-bin
+tests/bin/*
+tests/share/*
+cmake_install.cmake
+install_manifest.txt
+CMakeCache.txt
