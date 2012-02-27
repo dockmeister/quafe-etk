@@ -22,20 +22,18 @@
 
 #include <quafe-etk.h>
 
-#include <plugin/pluginbase.h>
+#include <include/pluginbase.h>
 
 #include <gtkmm/widget.h>
-/*
- *
- */
 namespace Quafe {
 namespace Plugin {
+/*!\brief
+ *
+ */
 class SkillTraining : public PluginBase {
 public:
 	SkillTraining();
 	virtual ~SkillTraining();
-
-	void show(Gtk::Widget &wg);
 
 	gboolean close() const {
 		return true;
@@ -56,6 +54,7 @@ public:
 	ustring plugin_description() const {
 		return "Skill Training";
 	}
+	Gtk::Widget *m_plugin_widget;
 };
 
 

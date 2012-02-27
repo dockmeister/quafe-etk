@@ -1,5 +1,4 @@
 /**
- *
  *  Quafe - Eve tools for linux.
  *  Copyright (C) 2012 Christoph Nikic
  *
@@ -18,6 +17,29 @@
  */
 
 #include "utility.h"
+
+#include <sys/stat.h>
+// ******************************************************************
+// helper
+
+extern "C" gboolean dir_exists(const ustring &dir) {
+	struct stat st;
+	if (stat(dir.c_str(), &st) < 0 || !S_ISDIR(st.st_mode)) {
+		return false;
+	}
+	return true;
+}
+
+extern "C" gboolean make_dir(const ustring &dir) {
+	if (mkdir(dir.c_str(), S_IRWXU) < 0) {
+		return false;
+	}
+	return true;
+}
+
+extern "C" gboolean file_exists(const ustring &file) {
+	return true;
+}
 
 // ******************************************************************
 // Logging class
@@ -51,7 +73,7 @@ namespace Quafe {
 // ******************************************************************
 // Quafe Exception class
 Exception::Exception(const ustring s) :
-		s_what(s) {
+	s_what(s) {
 
 }
 

@@ -29,17 +29,34 @@
  */
 namespace Quafe {
 
+struct PluginConstructParams {
+	ustring plugin_id;
+	ustring plugin_title;
+	ustring plugin_description;
+	ustring plugin_icon;
+};
+/*!\brief
+ *
+ */
 class PluginBase {
 public:
-	PluginBase() {};
-	virtual ~PluginBase() {};
+	PluginBase() : m_plugin_widget(0) {
 
-	virtual void show(Gtk::Widget &) = 0;
+	};
+	virtual ~PluginBase() {
+		if(m_plugin_widget)
+			delete m_plugin_widget;
+	};
+
+	virtual Gtk::Widget & show() const {
+		return *m_plugin_widget;
+	}
 	virtual gboolean close() const = 0;
 	virtual ustring plugin_id() const = 0;
 	virtual ustring plugin_title() const = 0;
 	virtual ustring plugin_description() const = 0;
 	virtual ustring plugin_icon_path() const = 0;
+	Gtk::Widget *m_plugin_widget;
 };
 // the types of the class factories
 typedef PluginBase* create_t();

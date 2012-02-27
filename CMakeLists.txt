@@ -14,6 +14,7 @@ find_package(PkgConfig)
 find_package(Boost COMPONENTS thread REQUIRED)
 pkg_check_modules(GTKMM gtkmm-3.0)
 
+add_subdirectory (libs/pugixml)
 add_subdirectory (quafe-bin)
 add_subdirectory (quafe-skilltraining)
 

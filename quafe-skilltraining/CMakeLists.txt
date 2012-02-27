@@ -1,7 +1,7 @@
 link_directories(${GTKMM_LIBRARY_DIRS} ${Boost_LIBRARY_DIR})
-include_directories(. ${GTKMM_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+include_directories(. ../quafe-bin/ ${GTKMM_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 
-add_library (quafe-skilltraining 
+add_library (quafe-skilltraining SHARED
 	skilltraining.cc
 ) 
 

@@ -23,9 +23,6 @@
 #include "application.h"
 #include "preferences.h"
 
-
-
-
 /*!\brief
  *
  */
@@ -40,15 +37,12 @@ int main(int argc, char **argv) {
 
 	LOG(L_NOTICE) << "quafe-etk starting up...";
 
+	settings->parse_plugin_dir();
 	settings->parse_config_file();
 
 	try {
-		//
-		Quafe::PluginList plugin_list;
-		discover_plugins(plugin_list);
-
 		Quafe::Application * app = Quafe::Application::instance();
-		app->load_plugins(plugin_list);
+		app->load_plugins();
 		app->run();
 	} catch (std::exception &e) {
 		LOG(L_CRITICAL) << e.what();

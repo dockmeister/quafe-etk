@@ -19,6 +19,7 @@
 
 #include "skilltraining.h"
 
+#include <gtkmm/label.h>
 namespace Quafe {
 namespace Plugin {
 
@@ -30,17 +31,11 @@ extern "C" void destroy(SkillTraining* p) {
     delete p;
 }
 
-SkillTraining::SkillTraining() {
-	// TODO Auto-generated constructor stub
-
+SkillTraining::SkillTraining() : m_plugin_widget(new Gtk::Label("skilltraining widget")) {
 }
 
 SkillTraining::~SkillTraining() {
-	// TODO Auto-generated destructor stub
 }
 
-void SkillTraining::show(Gtk::Widget &parent) {
-
-}
 }
 }

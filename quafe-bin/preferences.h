@@ -21,12 +21,11 @@
 #define PREFERENCES_H_
 
 #include <quafe-etk.h>
-#include <utility.h>
 
-#include "include/pluginbase.h"
 #include "ui/window_preferences.h"
+#include "include/pluginbase.h"
+#include "include/singleton.h"
 #include <boost/any.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 namespace Quafe {
 
@@ -36,11 +35,12 @@ namespace Quafe {
  * 		'plugin_id' should be a unique string to identify the plugin.
  */
 struct PluginInfo {
+	ustring plugin_file;
+	gboolean active;
 	Quafe::create_t *create; /*!< */
 	Quafe::destroy_t *destroy;
-	Quafe::PluginBase *ptr;
 
-	gboolean active;
+	Quafe::PluginBase *ptr;
 	ustring plugin_id;
 };
 
@@ -63,6 +63,8 @@ typedef std::map<ustring, boost::any> PreferenceMap;
  */
 class Preferences : public Singleton<Preferences> {
 	friend class Singleton<Preferences>;
+	// hack to modify plugin_list *ugly*
+	friend class Application;
 public:
 	/*!\brief
 	 * \param option the identifier to the option
@@ -70,7 +72,8 @@ public:
 	 */
 	template <class ValueType>
 	static const ValueType& get(ustring option) {
-		return boost::any_cast<ValueType>(instance()->m_settings[option]);
+		ValueType *s = boost::any_cast<ValueType>(&(instance()->m_settings[option]));
+		return *s;
 	}
 
 	/*!\brief opens the settings window */
@@ -97,7 +100,17 @@ public:
 	/*!\brief
 	 *
 	 */
-	void discover_plugins();
+	void parse_plugin_dir();
+protected:
+	/*!\brief
+	 * \param option the identifier to the option
+	 * \return the value for option
+	 */
+	template <class ValueType>
+	static ValueType& get_nonconst(ustring option) {
+		ValueType *s = boost::any_cast<ValueType>(&(instance()->m_settings[option]));
+		return *s;
+	}
 private:
 	Preferences();
 	virtual ~Preferences();

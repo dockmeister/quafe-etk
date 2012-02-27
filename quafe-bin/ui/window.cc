@@ -32,7 +32,16 @@ namespace Quafe {
 
 Window::Window() {
 	set_title("Quafe - eve tool kit");
-	m_ptrModulebar = Gtk::manage(new ModuleBar);
+	m_ptrModulebar = new ModuleBar;
+}
+
+Window::~Window() {
+	m_refContentFrame.remove();
+
+	if(m_ptrModulebar) {
+		delete m_ptrModulebar;
+		m_ptrModulebar = 0;
+	}
 }
 
 gboolean Window::create_window() {
@@ -111,8 +120,13 @@ gboolean Window::create_modulebar() {
 	return true;
 }
 
-Window::~Window() {
-	// since gtk is managing all widgets nothing to do here
+gboolean Window::show_plugin_widget(Gtk::Widget &widget) {
+	m_refContentFrame.remove();
+	m_refContentFrame.add(widget);
+	m_refContentFrame.show_all_children(true);
+
+	set_focus(m_refContentFrame);
+	return true;
 }
 
 }
