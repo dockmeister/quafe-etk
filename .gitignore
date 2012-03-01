@@ -4,7 +4,7 @@
 Makefile
 *.a
 *.so
-quafe-bin/quafe-bin
+quafe/quafe-bin
 tests/bin/*
 tests/share/*
 install_manifest.txt
