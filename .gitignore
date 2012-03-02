@@ -1,12 +1,14 @@
+/quafe/quafe-etk
+/data/quafe-etk.run
+/data/quafe-etk.cfg
+/data/quafe-etk
+/tests/test_eapi/eapi
 .git
 *~
 *CMakeFiles*
 Makefile
 *.a
 *.so
-quafe-bin/quafe-bin
-tests/bin/*
-tests/share/*
 install_manifest.txt
 CMakeCache.txt
 cmake_install.cmake

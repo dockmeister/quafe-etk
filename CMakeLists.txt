@@ -7,20 +7,23 @@ set(quafe_etk_VERSION_MINOR 1)
 set(quafe_etk_VERSION_PATCH 0+devel)
 set(quafe_etk_PREFIX ${CMAKE_INSTALL_PREFIX})
 
-configure_file(quafe-bin/quafe-etk.h.in quafe-bin/quafe-etk.h)
+configure_file(quafe/quafe-etk.h.in quafe/quafe-etk.h)
+configure_file(data/quafe-etk.run.in data/quafe-etk.run)
 
 #finding packages
 find_package(PkgConfig)
-find_package(Boost COMPONENTS thread REQUIRED)
+find_package(Boost)
 pkg_check_modules(GTKMM gtkmm-3.0)
 
 add_subdirectory (libs/pugixml)
-add_subdirectory (quafe-bin)
-add_subdirectory (quafe-skilltraining)
+add_subdirectory (libs/eapi)
+add_subdirectory (plugins)
+add_subdirectory (quafe)
 
-add_custom_target(fakeinstall 
-    ALL
-    "${CMAKE_COMMAND}" 
-    -D CMAKE_INSTALL_PREFIX:string=tests/
-    -P "cmake_install.cmake" 
-    DEPENDS quafe-bin) 
+add_subdirectory (tests EXCLUDE_FROM_ALL)
+
+add_custom_target (local_install)
+add_dependencies (local_install quafe plugins)
+
+get_target_property (quafe_loc quafe-etk LOCATION)
+add_custom_command (TARGET local_install POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${quafe_loc} ${CMAKE_BINARY_DIR}/data/)
