@@ -34,8 +34,7 @@ public:
 
 protected:
 	Singleton() {};
-	virtual ~Singleton() {
-	};
+	virtual ~Singleton() {};
 
 private:
 	static ImplT * m_instance;

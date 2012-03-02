@@ -13,29 +13,52 @@
 #include <glibmm/thread.h>
 #include <glibmm/threadpool.h>
 
-#include "eapi_fetcher.h"
-#include "../include/singleton.h"
+#include "singleton.h"
 
 namespace EAPI {
 class BasicAPI;
 
-static bool init(const ustring &dir);
-
-class EAPI : public Quafe::Singleton<EAPI> {
-	friend class Quafe::Singleton<EAPI>;
-	friend bool init(const ustring &wdir);
+namespace impl {
+/*! \brief
+ *
+ */
+class Request {
 public:
-	virtual ~EAPI();
+	static size_t write_to_stream();
+
+public:
+	Request(BasicAPI *api);
+	virtual ~Request();
+
+	void run();
+	bool unfinished() const;
+	sigc::signal<void> & signal_finished();
+private:
+	sigc::signal<void> signal_finished_;
+	ustring url;
+		ustring postfields;
+		std::stringstream *so;
+};
+} // end namespace impl
+
+
+
+
+class Main : public Quafe::Singleton<Main> {
+	friend class Quafe::Singleton<Main>;
+public:
+	static bool init(const ustring &dir);
+	virtual ~Main();
 
 	virtual void set_working_dir(const ustring &wdir);
 private:
 	class Fetcher {
 
 	};
-	EAPI();
+	Main();
 
 	Glib::ThreadPool m_thread_pool;
-	ustring wdir;
+	ustring m_workdir;
 };
 
 }

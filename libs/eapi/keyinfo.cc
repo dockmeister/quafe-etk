@@ -11,14 +11,12 @@
 
 namespace EAPI {
 
-void KeyInfo::create(ustring keyID, ustring vCode) {
-	throw new Exception();
+KeyInfo * KeyInfo::create(ustring keyID, ustring vCode) {
+	//throw new Exception();
 }
 
-KeyInfo::KeyInfo() {
-	cache = CACHE_STYLE_SHORT;
-	policy = UPDATE_ONSTARTUP & UPDATE_MANUAL;
-	uri = "/account/APIKey.xml.aspx";
+KeyInfo::KeyInfo() :
+	BasicAPI("/account/APIKey.xml.aspx", CACHE_STYLE_SHORT, UPDATE_ONSTARTUP & UPDATE_MANUAL) {
 }
 
 KeyInfo::~KeyInfo() {

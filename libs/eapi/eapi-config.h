@@ -7,12 +7,13 @@
 
 #ifndef EAPI_CONFIG_H_
 #define EAPI_CONFIG_H_
-#include <pugixml.hpp>
+#include <pugixml/pugixml.hpp>
 
 #include <glibmm/ustring.h>
 
 namespace EAPI {
 
+#define NUM_MAX_THREADS 3
 
 using namespace Glib;
 

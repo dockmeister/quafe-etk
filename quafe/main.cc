@@ -19,55 +19,53 @@
 #include <quafe-etk.h>
 
 #include "preferences.h"
+#include "pluginmanager.h"
 #include "utility.h"
 #include "application.h"
-#include "eapi/eapi.h"
+#include <eapi/eapi.h>
+
+#define TEST_PLUGIN_MANAGER 1
 
 /*!\brief
  *
  */
 int main(int argc, char **argv) {
 	//[ Initializing Preferences
-	//[ - parses the commandline arguments
-	//[ - reads the config file or create the default if not exists
 	if(Quafe::Preferences::init(argc, argv)) {
 		return EXIT_SUCCESS;
 	}
 	//]
 
-	//[ Plugins
+	Gtk::Main kit(argc, argv);
 
+	//[ Plugins
+	ustring directory = Quafe::Preferences::get<ustring>("plugin-directory");
+	Quafe::PluginManager::init(directory);
+#ifdef TEST_PLUGIN_MANAGER
+#endif
 	//]
 
 	//[ EAPI
 	ustring eapi_dir = Quafe::Preferences::get<ustring>("eapi-directory");
-	if(!EAPI::init(eapi_dir)) {
+	if(!EAPI::Main::init(eapi_dir)) {
 		return EXIT_FAILURE;
 	}
 	//]
 
 
-	Gtk::Main kit(argc, argv);
 
-	Quafe::Preferences * settings = Quafe::Preferences::instance();
-	if (settings->parse_command_line(argc, argv)) {
-		return EXIT_SUCCESS;
-	}
-
-	LOG(L_NOTICE) << "quafe-etk starting up...";
 
 
 
 	try {
 		Quafe::Application * app = Quafe::Application::instance();
-		app->load_all_plugins();
 		app->run();
 	} catch (std::exception &e) {
 		LOG(L_CRITICAL) << e.what();
 		return EXIT_FAILURE;
 	}
 
-	settings->save_config_file();
+	Quafe::Preferences::instance()->save_config_file();
 
 	return EXIT_SUCCESS;
 }

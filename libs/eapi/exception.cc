@@ -14,7 +14,7 @@ Exception::Exception() {
 
 }
 
-Exception::~Exception() {
+Exception::~Exception() throw() {
 	// TODO Auto-generated destructor stub
 }
 

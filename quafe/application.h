@@ -1,5 +1,4 @@
 /**
- *
  *  Quafe - Eve tools for linux.
  *  Copyright (C) 2012 Christoph Nikic
  *
@@ -29,7 +28,6 @@
 
 namespace Quafe {
 // forward decl to minimize dependencies
-struct PluginInfo;
 class PluginBase;
 class ApplicationWindow;
 
@@ -41,19 +39,7 @@ class Application : public Singleton<Application> {
 public:
 	void run(); //!< runs the application
 
-	/*< load all active plugins */
-	void load_all_plugins();
-
 	void endisable_plugin(bool active, ustring plugin_id);
-
-	/*< load a specific plugin */
-	void load_plugin(PluginInfo &plinfo);
-
-	/*< unloads all plugins */
-	void unload_all_plugins();
-
-	/*< unload a specific plugin */
-	void unload_plugin(PluginInfo &plinfo);
 
 	/*!\brief
 	 *

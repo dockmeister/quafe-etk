@@ -41,22 +41,6 @@ public:
 		return true;
 	}
 
-	ustring plugin_id() const {
-		return "skilltraining";
-	}
-
-	ustring plugin_icon_path() const {
-		return "images/skilltraining.png";
-	}
-
-	ustring plugin_title() const {
-		return "Skill Training";
-	}
-
-	ustring plugin_description() const {
-		return "Skill Training";
-	}
-	Gtk::Widget *m_plugin_widget;
 protected:
 };
 

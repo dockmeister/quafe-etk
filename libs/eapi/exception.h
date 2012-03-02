@@ -15,7 +15,7 @@ namespace EAPI {
 class Exception : public Glib::Exception {
 public:
 	Exception();
-	virtual ~Exception();
+	virtual ~Exception() throw();
 };
 
 }

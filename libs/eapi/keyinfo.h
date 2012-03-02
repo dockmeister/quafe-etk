@@ -23,8 +23,7 @@ public:
 	bool update();
 	bool force_update();
 protected:
-	KeyInfo() {
-	}
+	KeyInfo();
 	virtual ~KeyInfo();
 private:
 	Date cached_until;

@@ -10,6 +10,8 @@
 
 #include "preferences.h"
 #include "utility.h"
+#include "pluginmanager.h"
+
 #include <boost/bind.hpp>
 namespace Quafe {
 // ******************************************************************
@@ -44,23 +46,28 @@ template <>
 void Preferences::translate<PluginInfoList>::to(pugi::xml_node &node,  const PluginInfoList &value) {
 	PluginInfoList::const_iterator it = value.begin();
 	for (; it != value.end(); ++it) {
+		PluginInfo info = *it;
+		if(!info.validate())
+			continue;
+
 		pugi::xml_node pl = node.append_child("plugin");
-		pl.append_child(pugi::node_pcdata).set_value(((*it).plugin_file).c_str());
-		pl.append_attribute("active") = (*it).active;
+		pl.append_child(pugi::node_pcdata).set_value(info.file.c_str());
+		pl.append_attribute("active") = info.active;
+		pl.append_attribute("id") = info.id.c_str();
+		pl.append_attribute("title") = info.title.c_str();
 	}
 }
 
 template <>
-void Preferences::translate<PluginInfoList>::from(const pugi::xml_node &node, PluginInfoList &pl_list) {
-	pugi::xml_node_iterator pl_it = node.begin();
-	for (; pl_it != node.end(); ++pl_it) {
-		//[ Check if the plugin was discovered at startup and set it ?active?
-		ustring plugin_id = ustring((*pl_it).child_value());
-		PluginInfoList::iterator plugin = std::find_if(pl_list.begin(), pl_list.end(), boost::bind(&PluginInfo::plugin_file, _1) == plugin_id);
-
-		if(plugin != pl_list.end()) {
-			(*plugin).active = pl_it->attribute("active").as_bool();
-		}
+void Preferences::translate<PluginInfoList>::from(const pugi::xml_node &plugins_node, PluginInfoList &pl_list) {
+	pugi::xml_node_iterator node = plugins_node.begin();
+	for (; node != plugins_node.end(); ++node) {
+		//[ fill the plugin list with the configuration
+		PluginInfo info;
+		info.file = node->child_value();
+		info.active = node->attribute("active").as_bool();
+		info.id = node->attribute("id").value();
+		info.title = node->attribute("title").value();
 		//]
 	}
 }

@@ -7,17 +7,17 @@
 
 #include "eapi.h"
 
-#include "../utility.h"
 #include <glibmm/fileutils.h>
+
 namespace EAPI {
 
-bool init(const ustring &wdir) {
+bool Main::init(const ustring &wdir) {
 	try {
 		if(!Glib::thread_supported()) {
 			Glib::thread_init();
 		}
-	} catch(Glib::Exception &e) {
-		LOG(L_CRITICAL) << "Glib threads are not supported!";
+	} catch(std::exception &e) {
+//		LOG(L_CRITICAL) << "Glib threads are not supported!";
 		return false;
 	}
 
@@ -26,18 +26,22 @@ bool init(const ustring &wdir) {
 		return false;
 	}
 
-	EAPI *eapi = EAPI::instance();
+	Main *eapi = Main::instance();
 	eapi->set_working_dir(wdir);
 
 	return true;
 }
 
-EAPI::EAPI() : m_thread_pool(3) {
+Main::Main() : m_thread_pool(3) {
 
 }
 
-EAPI::~EAPI() {
+Main::~Main() {
 	// TODO Auto-generated destructor stub
+}
+
+void Main::set_working_dir(const ustring &wdir) {
+	m_workdir = wdir;
 }
 
 }

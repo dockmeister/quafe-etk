@@ -23,7 +23,7 @@
 
 #include "include/pluginbase.h"
 #include "include/singleton.h"
-#include <pugixml.hpp>
+#include <pugixml/pugixml.hpp>
 #include <boost/any.hpp>
 #include <boost/program_options.hpp>
 
@@ -36,22 +36,6 @@ class PreferenceDialog;
 
 namespace po = boost::program_options;
 
-/*! \brief PluginInfo struct.
- * 		Plugin information are stored in a PluginContainer.
- * 		Use the function pointer 'create' and 'destroy' to handle the plugin.
- * 		'plugin_id' should be a unique string to identify the plugin.
- */
-struct PluginInfo {
-	void* dlhandle;
-	ustring plugin_file;
-	Quafe::create_t *create; /*!< */
-	Quafe::destroy_t *destroy;
-	Quafe::PluginBase *ptr;
-
-	gboolean active;
-	ustring id;
-	ConstructParams params;
-};
 
 /*!\brief
  *
@@ -64,7 +48,6 @@ struct AccountInfo {
 };
 
 typedef std::list<AccountInfo> AccountInfoList;
-typedef std::list<PluginInfo> PluginInfoList;
 typedef std::map<ustring, boost::any> PreferenceMap;
 
 /*!\brief
@@ -72,8 +55,6 @@ typedef std::map<ustring, boost::any> PreferenceMap;
  */
 class Preferences : public Singleton<Preferences> {
 	friend class Singleton<Preferences>;
-	// hack to modify plugin_list *ugly*
-	friend class Application;
 public:
 	static bool init(int argc, char **argv);
 
@@ -87,6 +68,9 @@ public:
 		//ValueType &s = boost::any_cast<ValueType>(&(instance()->m_settings[option]));
 		return instance()->vmap[option].as<ValueType>();
 	}
+
+	/*< creates the dialog. called from application after the main window is created */
+		void create_dialog(Gtk::Window &window);
 
 	/*!\brief opens the settings window */
 	void show_settings();
@@ -109,23 +93,9 @@ public:
 	 */
 	gboolean save_config_file();
 
-	/*!\brief parses the plugin dir opens the plugins and stores it into PluginInfo List */
-	void parse_plugin_dir();
-
-	/*!\brief Opens a shared library */
-	gboolean open_plugin(PluginInfo &pl_info);
-
-	/*!\brief Closes a shared library */
-	gboolean close_plugin(PluginInfo &pl_info);
-
 protected:
-	//<
-	PluginInfoList & get_plugin_list() {
-		return m_plugin_list;
-	}
 
-	/*< creates the dialog. called from application after the main window is created */
-	void create_dialog(Gtk::Window &window);
+
 
 	/*< applies changes made in the dialog to AccountInfoList */
 	void apply_api_changes(const ustring &auth_id, const ustring &auth_key, API_CHANGE chg);
@@ -145,14 +115,14 @@ private:
 		static void from(const pugi::xml_node &node, T &value);
 	};
 
+	ustring m_config_path;
 
-	PluginInfoList m_plugin_list;
 	AccountInfoList m_account_list;
 	po::variables_map vmap;
 	po::options_description opt_cli, opt_general, opt_all;
 
-	ustring discover_config_path();
-	ustring discover_plugin_path();
+	ustring default_config_path();
+	ustring default_data_path();
 
 
 

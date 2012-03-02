@@ -38,7 +38,6 @@
 
 namespace Quafe {
 class ModuleBar;
-struct PluginInfo;
 /*!\brief
  *
  */

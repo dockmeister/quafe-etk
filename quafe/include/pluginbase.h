@@ -41,8 +41,8 @@ typedef struct {
  */
 class PluginBase {
 public:
-	PluginBase(const ConstructParams &params) : m_plugin_widget(0) {
-
+	PluginBase(const ConstructParams &params_) :
+		params(params_), m_plugin_widget(0) {
 	};
 	virtual ~PluginBase() {
 		if(m_plugin_widget)
@@ -50,13 +50,26 @@ public:
 	};
 
 	virtual Gtk::Widget & show() const {
+		m_plugin_widget->unparent();
 		return *m_plugin_widget;
 	}
+
 	virtual gboolean close() const = 0;
-	virtual ustring plugin_id() const = 0;
-	virtual ustring plugin_title() const = 0;
-	virtual ustring plugin_description() const = 0;
-	virtual ustring plugin_icon_path() const = 0;
+	virtual const ustring & get_id() const {
+		return params.id;
+	};
+	virtual const ustring & get_title() const {
+		return params.title;
+	};
+	virtual const ustring & get_description() const {
+		return params.description;
+	};
+	virtual const ustring & get_icon_path() const {
+		return params.icon;
+	};
+
+protected:
+	ConstructParams params;
 	Gtk::Widget *m_plugin_widget;
 
 };

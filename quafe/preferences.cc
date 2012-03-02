@@ -19,7 +19,8 @@
 #include "preferences.h"
 #include "preferences_translator.h"
 
-#include "eapi/keyinfo.h"
+#include <eapi/keyinfo.h>
+#include "pluginmanager.h"
 #include "include/pluginbase.h"
 #include "ui/dialogs.h"
 #include "ui/dialog_preferences.h"
@@ -28,11 +29,10 @@
 #include <pwd.h>
 #include <iostream>
 #include <fstream>
-#include <dlfcn.h>
+
 #include <boost/bind.hpp>
 #include <glibmm/fileutils.h>
 #include <glibmm/regex.h>
-#include <pugixml.hpp>
 
 namespace Quafe {
 
@@ -43,7 +43,6 @@ bool Preferences::init(int argc, char **argv) {
 		return true;
 	}
 
-	pref->parse_plugin_dir();
 	pref->parse_config_file();
 
 	return false;
@@ -52,11 +51,21 @@ bool Preferences::init(int argc, char **argv) {
 Preferences::Preferences() :
 	opt_cli("Command line arguments"), opt_general("quafe-etk") {
 
-	opt_cli.add_options()("help,h", "print this message")("version,v", "")("config-path",
-			po::value<ustring>()->default_value(discover_config_path()),
-			"Set the path where the configuration and any Eve API related file are stored")("data-path",
-			po::value<ustring>()->default_value(discover_plugin_path()), "Set the path where plugins and resources are stored")("minimize,m ",
-			po::value<bool>()->default_value(false), "Start quafe-etk minimized")("silent,s", po::value<bool>()->default_value(false), "");
+	m_config_path = default_config_path();
+
+	ustring dir_data = ustring(QUAFE_DATADIR);
+	ustring dir_plugins = build_filename(dir_data, "plugins");
+	ustring dir_eapi = m_config_path;
+
+	opt_cli.add_options()
+			("help,h", "print this message")
+			("version,v", "")
+			("config-directory", po::value(&m_config_path)->default_value(m_config_path), "Set the path where the configuration and any Eve API related file are stored")
+			("eapi-directory", po::value<ustring>()->default_value(dir_eapi), "Set the path where EAPI resources are stored")
+			("plugin-directory", po::value<ustring>()->default_value(dir_plugins), "Set the path where plugins and resources are stored")
+			("data-directory", po::value<ustring>()->default_value(dir_data), "Set the path where EAPI resources are stored")
+			("minimize,m ", po::value<bool>()->default_value(false), "Start quafe-etk minimized")
+			("silent,s", po::value<bool>()->default_value(false), "");
 
 	opt_general.add_options()("test-value", po::value<bool>()->default_value(false), "test-value");
 
@@ -148,6 +157,7 @@ void Preferences::apply_api_changes(const ustring &keyID, const ustring &vCode, 
 // ******************************************************************
 // methods to load and save settings
 gboolean Preferences::parse_command_line(int argc, char **argv) {
+	// TODO register directory validator to ensure paths are absolute and not relative
 	po::store(po::parse_command_line(argc, argv, opt_all), vmap);
 	po::notify(vmap);
 
@@ -165,10 +175,9 @@ gboolean Preferences::parse_command_line(int argc, char **argv) {
 
 gboolean Preferences::parse_config_file() {
 	//[ load or create configfile
-	ustring cfg_path = get<ustring> ("config-path");
-	ustring cfg_file = cfg_path + "quafe-etk.cfg";
+	ustring cfg_file = build_filename(m_config_path, "quafe-etk.cfg");
 
-	if (!dir_exists(cfg_path) || !file_exists(cfg_file)) {
+	if (!file_test(cfg_file, FILE_TEST_EXISTS)) {
 		LOG(L_NOTICE) << "Configuration file not found. Writing default config to: '" << cfg_file << "'";
 		return save_config_file();
 	}
@@ -198,7 +207,8 @@ gboolean Preferences::parse_config_file() {
 
 		//[ Parse plugin preferences
 		if (Regex::match_simple("^plugin-list$", it->name())) {
-			translate<PluginInfoList>::from(*it, m_plugin_list);
+			PluginInfoList plugin_list = PluginManager::instance()->get_plugin_list();
+			translate<PluginInfoList>::from(*it, plugin_list);
 			continue;
 		}
 		//]
@@ -252,21 +262,21 @@ gboolean Preferences::save_config_file() {
 
 	//[ Add plugin-list and account-list since they are not stored in vmap
 	pugi::xml_node pl_node = root.append_child("plugin-list");
-	translate<PluginInfoList>::to(pl_node, m_plugin_list);
+	PluginInfoList plugin_list = PluginManager::instance()->get_plugin_list();
+	translate<PluginInfoList>::to(pl_node, plugin_list);
 
 	pugi::xml_node ac_node = root.append_child("account-list");
 	translate<AccountInfoList>::to(ac_node, m_account_list);
 	//]
 
 	//[ finally save the config file
-	ustring cfg_path = get<ustring> ("config-path");
-	ustring cfg_file = cfg_path + "quafe-etk.cfg";
+	ustring cfg_file = build_filename(m_config_path, "quafe-etk.cfg");
 
 	// check if directory exists
-	if (!dir_exists(cfg_path)) {
+	if (!file_test(m_config_path, FILE_TEST_IS_DIR)) {
 		// try to create directory
-		if (!make_dir(cfg_path)) {
-			LOG(L_WARNING) << "could not create directory '" << cfg_path << "'";
+		if (!make_dir(m_config_path)) {
+			LOG(L_WARNING) << "could not create directory '" << m_config_path << "'";
 			return false;
 		}
 	}
@@ -276,92 +286,11 @@ gboolean Preferences::save_config_file() {
 
 	return true;
 }
-// ******************************************************************
-// plugin methods
-
-void Preferences::parse_plugin_dir() {
-	ustring plugin_path = get<ustring> ("data-path") + "plugins/";
-
-	Dir plugin_dir(plugin_path);
-	Dir::const_iterator it = plugin_dir.begin();
-
-	for (; it != plugin_dir.end(); ++it) {
-		ustring plugin_name = *it;
-
-		if (!Regex::match_simple("^libquafe-[a-z]+.so$", plugin_name))
-			continue;
-
-		Quafe::PluginInfo pl_info;
-		pl_info.plugin_file = plugin_name;
-		pl_info.active = true;
-
-		if (open_plugin(pl_info)) {
-			m_plugin_list.push_back(pl_info);
-		}
-	}
-
-	LOG(L_NOTICE) << "Plugin path: " << plugin_path << " (" << m_plugin_list.size() << " plugins discovered)";
-}
-
-gboolean Preferences::open_plugin(PluginInfo &pl_info) {
-	ustring plugin_path = get<ustring> ("data-path") + "plugins/";
-
-	void* plugin = dlopen((plugin_path + pl_info.plugin_file).c_str(), RTLD_LAZY);
-	if (!plugin) {
-		LOG(L_ERROR) << "Cannot load plugin " << dlerror();
-		return false;
-	}
-
-	Quafe::create_t* create_plugin = (Quafe::create_t*) dlsym(plugin, "create");
-	const char* dlsym_error = dlerror();
-	if (dlsym_error) {
-		LOG(L_ERROR) << "Cannot load symbol create: " << dlsym_error;
-		return false;
-	}
-
-	Quafe::destroy_t* destroy_plugin = (Quafe::destroy_t*) dlsym(plugin, "destroy");
-	dlsym_error = dlerror();
-	if (dlsym_error) {
-		LOG(L_ERROR) << "Cannot load symbol destroy: " << dlsym_error;
-		return false;
-	}
-
-	Quafe::get_params_t* plugin_params = (Quafe::get_params_t*) dlsym(plugin, "get_params");
-	dlsym_error = dlerror();
-	if (dlsym_error) {
-		LOG(L_ERROR) << "Cannot load symbol get_params: " << dlsym_error;
-		return false;
-	}
-
-	pl_info.dlhandle = plugin;
-	pl_info.create = create_plugin;
-	pl_info.destroy = destroy_plugin;
-	pl_info.params = plugin_params();
-	pl_info.id = pl_info.params.id;
-
-	return true;
-}
-
-gboolean Preferences::close_plugin(PluginInfo &pl_info) {
-	if (pl_info.dlhandle == 0 || pl_info.ptr) {
-		LOG(L_WARNING) << "Failed to close '" << pl_info.plugin_file << "'";
-		return false;
-	}
-
-	if (dlclose(pl_info.dlhandle)) {
-		// dlclose != 0 : error occured
-		LOG(L_WARNING) << dlerror();
-		return false;
-	}
-
-	pl_info.dlhandle = 0;
-	return true;
-}
 
 // ******************************************************************
 // private helper methods
 
-ustring Preferences::discover_config_path() {
+ustring Preferences::default_config_path() {
 	ustring def_cfgdir = "/tmp";
 	uid_t user_id = geteuid();
 	struct passwd* user_info = getpwuid(user_id);
@@ -381,7 +310,4 @@ ustring Preferences::discover_config_path() {
 	return def_cfgdir + "/.quafe-etk/";
 }
 
-ustring Preferences::discover_plugin_path() {
-	return ustring(QUAFE_DATADIR);
-}
 } /* namespace Quafe */

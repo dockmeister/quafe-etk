@@ -18,7 +18,6 @@
  */
 
 #include "skilltraining.h"
-
 #include <gtkmm/label.h>
 namespace Quafe {
 namespace Plugin {
@@ -27,7 +26,7 @@ ConstructParams params = {
 		"skilltraining",
 		"Skill Training",
 		"Training planer and more",
-		"images/skilltraining.png"
+		"skilltraining.png"
 	};
 
 extern "C" const ConstructParams & get_params() {
@@ -43,7 +42,9 @@ extern "C" void destroy(SkillTraining* p) {
 }
 
 SkillTraining::SkillTraining(const ConstructParams &params) :
-		PluginBase(params), m_plugin_widget(new Gtk::Label("skilltraining widget")) {
+		PluginBase(params) {
+	m_plugin_widget = new Gtk::Label("skilltraining");
+
 }
 
 SkillTraining::~SkillTraining() {

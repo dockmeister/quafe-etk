@@ -19,6 +19,7 @@
 
 #include "charinfo.h"
 
+#include <gtkmm/label.h>
 namespace Quafe {
 namespace Plugin {
 
@@ -26,7 +27,7 @@ ConstructParams params = {
 		"charinfo",
 		"Assets, Wallet Journal",
 		"Assets and more",
-		"images/assets.png"
+		"assets.png"
 	};
 
 extern "C" const ConstructParams & get_params() {
@@ -43,7 +44,7 @@ extern "C" void destroy(PluginCharacterInfo* p) {
 
 PluginCharacterInfo::PluginCharacterInfo(const ConstructParams &params) :
 	PluginBase(params) {
-	// TODO Auto-generated constructor stub
+	m_plugin_widget = new Gtk::Label(params.title);
 
 }
 
@@ -51,8 +52,5 @@ PluginCharacterInfo::~PluginCharacterInfo() {
 	// TODO Auto-generated destructor stub
 }
 
-void PluginCharacterInfo::show(Gtk::Widget &parent) {
-
-}
 }
 }

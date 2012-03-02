@@ -18,6 +18,7 @@
 
 #include "application.h"
 
+#include "pluginmanager.h"
 #include "preferences.h"
 #include "ui/window.h"
 #include "ui/modulebar.h"
@@ -40,13 +41,25 @@ Application::Application() :
 	app_window->create_window();
 	//]
 
-	//
 	Preferences::instance()->create_dialog(*app_window);
+
+	//[ add valid plugins to gui (active or not)
+	PluginInfoList p_list = PluginManager::instance()->get_plugin_list();
+	PluginInfoList::iterator it = p_list.begin();
+
+	for(; it != p_list.end(); ++it) {
+		PluginInfo info = *it;
+		if(!info.validate())
+			continue;
+
+		ustring icon_path = build_filename(Preferences::get<ustring>("data-directory"), "images", info.icon);
+		app_window->add_plugin(info.id, info.title, icon_path, info.active);
+	}
+	//]
 }
 
 Application::~Application() {
 	m_plugin_current = 0;
-	unload_all_plugins();
 
 	QUAFE_DELETE(app_window);
 }
@@ -72,22 +85,20 @@ void Application::quit() {
 // Plugin methods
 
 gboolean Application::toggle_plugin(ustring plugin_id) {
-	PluginInfoList &p_list = Preferences::instance()->get_plugin_list();
+	PluginBase *plugin = 0;
 
-	PluginInfoList::iterator it = std::find_if(p_list.begin(), p_list.end(), boost::bind(&PluginInfo::id, _1) == plugin_id);
-
-	if (it == p_list.end()) {
+	if (!PluginManager::instance()->find(plugin_id, plugin)) {
 		LOG(L_ERROR) << "Unknown plugin '" << plugin_id << "' requested";
 		return false;
 	}
 
-	if ((*it).ptr == m_plugin_current) {
+	if (plugin == m_plugin_current) {
 		LOG(L_DEBUG) << "Plugin '" << plugin_id << "' already loaded.";
 		return false;
 	}
 
 	if (m_plugin_current == 0 || (m_plugin_current && m_plugin_current->close())) {
-		m_plugin_current = (*it).ptr;
+		m_plugin_current = plugin;
 		app_window->show_plugin_widget(m_plugin_current->show());
 
 		return true;
@@ -97,55 +108,14 @@ gboolean Application::toggle_plugin(ustring plugin_id) {
 }
 
 void Application::endisable_plugin(bool active, ustring plugin_id) {
-	PluginInfoList &p_list = Preferences::instance()->get_plugin_list();
-	PluginInfoList::iterator it = std::find_if(p_list.begin(), p_list.end(), boost::bind(&PluginInfo::id, _1) == plugin_id);
-
-	if(active && it != p_list.end()) {
-		load_plugin(*it);
-
-	} else if(!active && it != p_list.end()) {
-		unload_plugin(*it);
-	}
-}
-
-void Application::load_all_plugins() {
-	PluginInfoList &p_list = Preferences::instance()->get_plugin_list();
-	PluginInfoList::iterator it = p_list.begin();
-	for(; it != p_list.end(); ++it) {
-		PluginInfo p_info = *it;
-		load_plugin(p_info);
-
-		ustring icon_path = Preferences::get<ustring>("data-path") + p_info.params.icon;
-		app_window->add_plugin(p_info.id, p_info.params.title, icon_path, p_info.active);
-	}
-}
-
-void Application::load_plugin(PluginInfo &p_info) {
-
-
-	p_info.ptr = p_info.create();
-	if (p_info.ptr == 0) {
-		LOG(L_WARNING) << "failed to initialize plugin";
-		return;
-	}
-
-	LOG(L_NOTICE) << "Plugin '" << p_info.params.id << "' loaded.";
-}
-
-void Application::unload_all_plugins() {
-	PluginInfoList &p_list = Preferences::instance()->get_plugin_list();
-
-	std::for_each(p_list.begin(), p_list.end(), boost::bind(&Application::unload_plugin, this, _1));
-}
-
-void Application::unload_plugin(PluginInfo &p_info) {
-	if (p_info.ptr == 0)
+	PluginInfo info;
+	if(!PluginManager::instance()->find(plugin_id, info))
 		return;
 
-	p_info.destroy(p_info.ptr);
-	p_info.ptr = 0;
-
-	LOG(L_NOTICE) << "Plugin '" << p_info.params.id << "' unloaded.";
+	if(active) {
+		PluginManager::instance()->create(info);
+	} else {
+		PluginManager::instance()->destroy(info);
+	}
 }
-
 }

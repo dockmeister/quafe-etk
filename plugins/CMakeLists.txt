@@ -1,9 +1,15 @@
-add_subdirectory (quafe-skilltraining)
-add_subdirectory (quafe-character)
+set (PLUGIN_LIST 
+	"quafe-skilltraining" 
+	"quafe-character"
+)
 
-add_custom_target (plugins DEPENDS quafe-skilltraining quafe-character)
+add_custom_target (plugins)
 
-add_custom_target(fakeinstall 
-    "${CMAKE_COMMAND}" 
-    -D CMAKE_INSTALL_PREFIX:string=tests/
-    -P "cmake_install.cmake") 
+FOREACH(PLUGIN ${PLUGIN_LIST})
+	add_subdirectory (${PLUGIN})
+	add_dependencies (plugins ${PLUGIN})
+	
+	get_target_property (PLUGIN_loc ${PLUGIN} LOCATION)
+	add_custom_command (TARGET plugins POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${PLUGIN_loc} ${CMAKE_BINARY_DIR}/data/plugins/)
+ENDFOREACH(PLUGIN)
+

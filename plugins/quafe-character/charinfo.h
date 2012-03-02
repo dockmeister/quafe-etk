@@ -35,26 +35,8 @@ public:
 	PluginCharacterInfo(const ConstructParams &params);
 	virtual ~PluginCharacterInfo();
 
-	void show(Gtk::Widget &wg);
-
 	gboolean close() const {
 		return true;
-	}
-
-	ustring plugin_id() const {
-		return "charinfo";
-	}
-
-	ustring plugin_icon_path() const {
-		return "images/assets.png";
-	}
-
-	ustring plugin_title() const {
-		return "Character Info";
-	}
-
-	ustring plugin_description() const {
-		return "Assets, Wallet Journal and more";
 	}
 };
 
