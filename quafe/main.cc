@@ -24,7 +24,7 @@
 #include "application.h"
 #include <eapi/eapi.h>
 
-#define TEST_PLUGIN_MANAGER 1
+#undef TEST_PLUGIN_MANAGER
 
 /*!\brief
  *
