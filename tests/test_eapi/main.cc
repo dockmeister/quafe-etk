@@ -44,7 +44,7 @@ int main(int, char**)
   }
 
   while(pool.get_num_threads() > 0) {
-	  std::cout << "numthreads: " << pool.get_num_threads() << std::endl;
+	  std::cout << "numthreads: " << pool.get_num_threads() << pool.get_num_unused_threads() << std::endl;
 	  Glib::usleep(100000);
   }
   pool.shutdown();

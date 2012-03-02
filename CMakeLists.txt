@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (quafe-etk)
 
+
 set(quafe_etk_NAME quafe-etk)
 set(quafe_etk_VERSION_MAJOR 0)
 set(quafe_etk_VERSION_MINOR 1)
