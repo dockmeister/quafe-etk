@@ -34,6 +34,13 @@ void Preferences::translate<bool>::to(pugi::xml_node &node,  const po::variable_
 }
 
 // ******************************************************************
+// translate bool
+template <>
+void Preferences::translate<int>::to(pugi::xml_node &node,  const po::variable_value &value) {
+	node.append_attribute("value") = value.as<int>();
+}
+
+// ******************************************************************
 // translate ustring
 template <>
 void Preferences::translate<ustring>::to(pugi::xml_node &node,  const po::variable_value &value) {

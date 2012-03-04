@@ -27,8 +27,8 @@
 #define QUAFE_VERSION_PATCH 0+devel
 #define QUAFE_VERSION "0.1.0+devel"
 
-#define QUAFE_PREFIX "/home/cn/coding/quafe-etk.git/tests"
-#define QUAFE_DATADIR "/home/cn/coding/quafe-etk.git/tests/share/quafe-etk/"
+#define QUAFE_PREFIX "/usr/local"
+#define QUAFE_DATADIR "/usr/local/share/quafe-etk"
 
 #define QUAFE_DELETE(ptr); if(ptr) {delete ptr; ptr=0;}
 #if ENABLE_NLS

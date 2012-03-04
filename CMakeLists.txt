@@ -7,13 +7,26 @@ set(quafe_etk_VERSION_MINOR 1)
 set(quafe_etk_VERSION_PATCH 0+devel)
 set(quafe_etk_PREFIX ${CMAKE_INSTALL_PREFIX})
 
+set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fmessage-length=0")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE} -O3")
+
+set(QUAFE_LIBS_INCLUDE "${CMAKE_BINARY_DIR}/libs" GLOBAL_SCOPE)
+
 configure_file(quafe/quafe-etk.h.in quafe/quafe-etk.h)
+configure_file(data/quafe-etk.desktop.in data/quafe-etk.desktop)
 configure_file(data/quafe-etk.run.in data/quafe-etk.run)
 
 #finding packages
 find_package(PkgConfig)
 find_package(Boost)
+pkg_check_modules(GLIBMM glibmm-2.4)
 pkg_check_modules(GTKMM gtkmm-3.0)
+
+
+
+
 
 add_subdirectory (libs/pugixml)
 add_subdirectory (libs/eapi)
@@ -22,8 +35,7 @@ add_subdirectory (quafe)
 
 add_subdirectory (tests EXCLUDE_FROM_ALL)
 
-add_custom_target (local_install)
-add_dependencies (local_install quafe plugins)
+add_custom_target (fake-install)
+add_dependencies (fake-install quafe-fake-install plugins-fake-install)
 
-get_target_property (quafe_loc quafe-etk LOCATION)
-add_custom_command (TARGET local_install POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${quafe_loc} ${CMAKE_BINARY_DIR}/data/)
+

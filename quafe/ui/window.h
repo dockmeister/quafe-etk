@@ -43,6 +43,10 @@ class ModuleBar;
  */
 class ApplicationWindow : public Gtk::Window {
 	friend class Application;
+public:
+	bool is_maximized() const {
+		return maximized;
+	}
 protected:
 	ApplicationWindow();
 	~ApplicationWindow();
@@ -51,6 +55,8 @@ protected:
 	gboolean show_plugin_widget(Gtk::Widget &widget);
 
 	void add_plugin(ustring plugin_id, ustring plugin_title, ustring plugin_icon,  bool active);
+
+	bool on_window_state_event(GdkEventWindowState *event);
 
 	// boost functions
 	boost::function<void ()> action_quit;
@@ -72,7 +78,7 @@ private:
 	Gtk::ScrolledWindow m_refContentFrame;
 	ModuleBar *m_ptrModulebar;
 
-
+	bool maximized;
 };
 
 }

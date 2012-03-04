@@ -10,12 +10,9 @@
 namespace EAPI {
 
 Exception::Exception() {
-	// TODO Auto-generated constructor stub
-
 }
 
 Exception::~Exception() throw() {
-	// TODO Auto-generated destructor stub
 }
 
 }

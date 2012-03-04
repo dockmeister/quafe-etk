@@ -28,7 +28,7 @@
 #define QUAFE_VERSION "@quafe_etk_VERSION_MAJOR@.@quafe_etk_VERSION_MINOR@.@quafe_etk_VERSION_PATCH@"
 
 #define QUAFE_PREFIX "@quafe_etk_PREFIX@"
-#define QUAFE_DATADIR "@quafe_etk_PREFIX@/share/quafe-etk/"
+#define QUAFE_DATADIR "@quafe_etk_PREFIX@/share/quafe-etk"
 
 #define QUAFE_DELETE(ptr); if(ptr) {delete ptr; ptr=0;}
 #if ENABLE_NLS

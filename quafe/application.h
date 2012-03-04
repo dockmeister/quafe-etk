@@ -39,6 +39,8 @@ class Application : public Singleton<Application> {
 public:
 	void run(); //!< runs the application
 
+	const ApplicationWindow * get_window();
+
 	void endisable_plugin(bool active, ustring plugin_id);
 
 	/*!\brief
@@ -47,8 +49,10 @@ public:
 	 * \return true, if the plugin switch was successful
 	 */
 	gboolean toggle_plugin(ustring plugin_id);
+
 protected:
-	/**
+	/*! \brief
+	 *
 	 *
 	 */
 	void quit();

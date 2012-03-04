@@ -19,17 +19,18 @@
 #include "preferences.h"
 #include "preferences_translator.h"
 
-#include <eapi/keyinfo.h>
+#include "application.h"
 #include "pluginmanager.h"
 #include "include/pluginbase.h"
 #include "ui/dialogs.h"
 #include "ui/dialog_preferences.h"
+#include "ui/window.h"
 #include "utility.h"
 
+#include <eapi/keyinfo.h>
 #include <pwd.h>
 #include <iostream>
 #include <fstream>
-
 #include <boost/bind.hpp>
 #include <glibmm/fileutils.h>
 #include <glibmm/regex.h>
@@ -39,7 +40,7 @@ namespace Quafe {
 bool Preferences::init(int argc, char **argv) {
 	Preferences *pref = Preferences::instance();
 
-	if(pref->parse_command_line(argc, argv)) {
+	if (pref->parse_command_line(argc, argv)) {
 		return true;
 	}
 
@@ -57,17 +58,18 @@ Preferences::Preferences() :
 	ustring dir_plugins = build_filename(dir_data, "plugins");
 	ustring dir_eapi = m_config_path;
 
-	opt_cli.add_options()
-			("help,h", "print this message")
-			("version,v", "")
-			("config-directory", po::value(&m_config_path)->default_value(m_config_path), "Set the path where the configuration and any Eve API related file are stored")
-			("eapi-directory", po::value<ustring>()->default_value(dir_eapi), "Set the path where EAPI resources are stored")
-			("plugin-directory", po::value<ustring>()->default_value(dir_plugins), "Set the path where plugins and resources are stored")
-			("data-directory", po::value<ustring>()->default_value(dir_data), "Set the path where EAPI resources are stored")
-			("minimize,m ", po::value<bool>()->default_value(false), "Start quafe-etk minimized")
-			("silent,s", po::value<bool>()->default_value(false), "");
+	opt_cli.add_options()("help,h", "print this message")("version,v", "")("config-directory",
+			po::value(&m_config_path)->default_value(m_config_path), "Set the path where the configuration and any Eve API related file are stored")(
+			"eapi-directory", po::value<ustring>()->default_value(dir_eapi), "Set the path where EAPI resources are stored")("plugin-directory",
+			po::value<ustring>()->default_value(dir_plugins), "Set the path where plugins and resources are stored")("data-directory",
+			po::value<ustring>()->default_value(dir_data), "Set the path where EAPI resources are stored")("minimize,m ",
+			po::value<bool>()->default_value(false), "Start quafe-etk minimized")("silent,s", po::value<bool>()->default_value(false), "");
 
-	opt_general.add_options()("test-value", po::value<bool>()->default_value(false), "test-value");
+	opt_general.add_options()
+			("maximized", po::value<bool>()->default_value(false))
+			("size-width", po::value<int>()->default_value(800))
+			("size-height", po::value<int>()->default_value(600))
+			("test-value", po::value<bool>()->default_value(false), "test-value");
 
 	opt_all.add(opt_cli).add(opt_general);
 }
@@ -115,7 +117,7 @@ void Preferences::apply_api_changes(const ustring &keyID, const ustring &vCode, 
 		EAPI::KeyInfo *m_key;
 		try {
 			m_key = EAPI::KeyInfo::create(keyID, vCode);
-		} catch(EAPI::Exception &e) {
+		} catch (EAPI::Exception &e) {
 			show_error_dialog("Failed to add API Key.", e.what());
 			return;
 		}
@@ -194,6 +196,7 @@ gboolean Preferences::parse_config_file() {
 	//
 	po::parsed_options parsed(&opt_all);
 
+	// TODO unknown options throw a boost:exception
 	//[ iterate over config file, check if its a valid preferences and apply
 	pugi::xml_node root = doc.document_element();
 	pugi::xml_node_iterator it = root.begin();
@@ -254,9 +257,27 @@ gboolean Preferences::save_config_file() {
 			continue;
 		}
 
+		if (pref_value.value().type() == typeid(int)) {
+			translate<int>::to(node, pref_value);
+			continue;
+		}
+
 		// no translator found!
 		LOG(L_DEBUG) << "No translator found for preference: '" << pref_name << "'";
 		//]
+	}
+	//]
+
+	//[ Parsing window settings
+	const ApplicationWindow *win = Application::instance()->get_window();
+
+	root.child("maximized").attribute("value") = win->is_maximized();
+
+	if(!win->is_maximized()) {
+		int w, h;
+		win->get_size(w, h);
+		root.child("size-width").attribute("value") = w;
+		root.child("size-height").attribute("value") = h;
 	}
 	//]
 
@@ -293,10 +314,10 @@ gboolean Preferences::save_config_file() {
 ustring Preferences::default_config_path() {
 	ustring def_cfgdir = "/tmp";
 	uid_t user_id = geteuid();
+	// FIXME memory leak
 	struct passwd* user_info = getpwuid(user_id);
-
+	// TODO switch to Glib::get_config_dir() ||
 	if (user_info && user_info->pw_dir) {
-		//@todo: change to dir_exists();
 		try {
 			Dir home_dir(user_info->pw_dir);
 			def_cfgdir = user_info->pw_dir;

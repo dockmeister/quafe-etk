@@ -49,7 +49,6 @@ PluginCharacterInfo::PluginCharacterInfo(const ConstructParams &params) :
 }
 
 PluginCharacterInfo::~PluginCharacterInfo() {
-	// TODO Auto-generated destructor stub
 }
 
 }

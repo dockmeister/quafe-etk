@@ -22,7 +22,7 @@ namespace Quafe {
  * 		Use the function pointer 'create' and 'destroy' to handle the plugin.
  * 		'plugin_id' should be a unique string to identify the plugin.
  */
-typedef struct {
+typedef struct PluginInfo {
 	void* dlhandle;
 	Quafe::create_t *create; /*!< */
 	Quafe::destroy_t *destroy;
@@ -42,7 +42,12 @@ typedef struct {
 
 		return true;
 	}
-} PluginInfo;
+
+	PluginInfo() {
+		ptr = 0;
+		create = 0;
+	}
+};
 
 typedef std::list<PluginInfo> PluginInfoList;
 

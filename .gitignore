@@ -1,8 +1,11 @@
+/tests/test-eapi/test-eapi
 /quafe/quafe-etk
 /data/quafe-etk.run
 /data/quafe-etk.cfg
 /data/quafe-etk
+/data/images/not_used
 /tests/test_eapi/eapi
+sens_data.h
 .git
 *~
 *CMakeFiles*

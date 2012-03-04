@@ -37,7 +37,6 @@ Main::Main() : m_thread_pool(3) {
 }
 
 Main::~Main() {
-	// TODO Auto-generated destructor stub
 }
 
 void Main::set_working_dir(const ustring &wdir) {

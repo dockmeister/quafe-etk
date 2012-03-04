@@ -89,7 +89,8 @@ Gtk::Widget * PreferenceDialog::create_account_tab() {
 	m_TreeView.append_column("Auth ID", m_columns.auth_id);
 	m_TreeView.append_column("Auth Key", m_columns.auth_key);
 
-	Gtk::Grid *grid = Gtk::manage(new Gtk::Grid);
+	Gtk::Grid *grid = new Gtk::Grid;
+	grid->set_manage();
 	grid->set_hexpand(true);
 	grid->set_column_spacing(10);
 	grid->set_row_spacing(10);

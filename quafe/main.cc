@@ -30,32 +30,19 @@
  *
  */
 int main(int argc, char **argv) {
-	//[ Initializing Preferences
 	if(Quafe::Preferences::init(argc, argv)) {
 		return EXIT_SUCCESS;
 	}
-	//]
 
 	Gtk::Main kit(argc, argv);
 
-	//[ Plugins
 	ustring directory = Quafe::Preferences::get<ustring>("plugin-directory");
 	Quafe::PluginManager::init(directory);
-#ifdef TEST_PLUGIN_MANAGER
-#endif
-	//]
 
-	//[ EAPI
 	ustring eapi_dir = Quafe::Preferences::get<ustring>("eapi-directory");
 	if(!EAPI::Main::init(eapi_dir)) {
 		return EXIT_FAILURE;
 	}
-	//]
-
-
-
-
-
 
 	try {
 		Quafe::Application * app = Quafe::Application::instance();

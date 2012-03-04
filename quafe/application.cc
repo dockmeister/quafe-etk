@@ -58,6 +58,7 @@ Application::Application() :
 	//]
 }
 
+
 Application::~Application() {
 	m_plugin_current = 0;
 
@@ -81,6 +82,8 @@ void Application::quit() {
 		app_window->hide();
 	}
 }
+
+
 // *******************************************************************
 // Plugin methods
 
@@ -112,10 +115,15 @@ void Application::endisable_plugin(bool active, ustring plugin_id) {
 	if(!PluginManager::instance()->find(plugin_id, info))
 		return;
 
+	// FIXME seg fault at toggeling twice
 	if(active) {
 		PluginManager::instance()->create(info);
 	} else {
 		PluginManager::instance()->destroy(info);
 	}
+}
+
+const ApplicationWindow * Application::get_window() {
+	return app_window;
 }
 }

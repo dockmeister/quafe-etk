@@ -22,6 +22,8 @@
 
 #include "modulebar.h"
 
+#include "../preferences.h"
+#include "../utility.h"
 #include <boost/bind.hpp>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
@@ -34,9 +36,20 @@
 namespace Quafe {
 
 ApplicationWindow::ApplicationWindow() :
-	m_ptrModulebar(new ModuleBar) {
+	m_ptrModulebar(new ModuleBar), maximized(false) {
 	set_title("Quafe - eve tool kit");
+	set_position(Gtk::WIN_POS_CENTER);
+	set_size_request(800, 600);
 
+	ustring icon_file = build_filename(Preferences::get<ustring>("data-directory"), "images", "quafe.png");
+	set_icon_from_file(icon_file);
+	resize(Preferences::get<int>("size-width"), Preferences::get<int>("size-height"));
+
+	if(Preferences::get<bool>("maximized") == true) {
+		maximize();
+		maximized = true;
+		LOG(L_DEBUG) << "max";
+	}
 }
 
 ApplicationWindow::~ApplicationWindow() {
@@ -146,6 +159,17 @@ gboolean ApplicationWindow::show_plugin_widget(Gtk::Widget &widget) {
 	m_refContentFrame.show_all_children(true);
 
 	set_focus(m_refContentFrame);
+	return true;
+}
+
+bool ApplicationWindow::on_window_state_event(GdkEventWindowState *event) {
+	if((event->changed_mask & Gdk::WINDOW_STATE_MAXIMIZED) == Gdk::WINDOW_STATE_MAXIMIZED) {
+		if((event->new_window_state & Gdk::WINDOW_STATE_MAXIMIZED) == Gdk::WINDOW_STATE_MAXIMIZED) {
+			maximized = true;
+		} else {
+			maximized = false;
+		}
+	}
 	return true;
 }
 

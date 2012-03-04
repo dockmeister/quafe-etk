@@ -20,7 +20,6 @@ KeyInfo::KeyInfo() :
 }
 
 KeyInfo::~KeyInfo() {
-	// TODO Auto-generated destructor stub
 }
 
 }
