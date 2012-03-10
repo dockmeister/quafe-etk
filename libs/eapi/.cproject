@@ -28,8 +28,8 @@
 								<option id="gnu.cpp.compiler.option.include.paths.947865409" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/include/gtkmm-3.0"/>
 									<listOptionValue builtIn="false" value="/usr/include/glibmm-2.4"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/quafe}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/libs/&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/giomm-2.4"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.39058133" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>

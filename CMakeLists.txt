@@ -16,14 +16,13 @@ set(QUAFE_LIBS_INCLUDE "${CMAKE_BINARY_DIR}/libs" GLOBAL_SCOPE)
 
 configure_file(quafe/quafe-etk.h.in quafe/quafe-etk.h)
 configure_file(data/quafe-etk.desktop.in data/quafe-etk.desktop)
-configure_file(data/quafe-etk.run.in data/quafe-etk.run)
 
 #finding packages
 find_package(PkgConfig)
 find_package(Boost)
+pkg_check_modules(GIOMM giomm-2.4)
 pkg_check_modules(GLIBMM glibmm-2.4)
 pkg_check_modules(GTKMM gtkmm-3.0)
-
 
 
 
@@ -38,4 +37,9 @@ add_subdirectory (tests EXCLUDE_FROM_ALL)
 add_custom_target (fake-install)
 add_dependencies (fake-install quafe-fake-install plugins-fake-install)
 
-
+## doxygen support
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+	configure_file(${CMAKE_BINARY_DIR}/doxyfile.in ${CMAKE_BINARY_DIR}/doxyfile @ONLY)
+	add_custom_target(doc ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/doxyfile WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+endif(DOXYGEN_FOUND)

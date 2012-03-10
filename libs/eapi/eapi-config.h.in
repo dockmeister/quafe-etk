@@ -19,7 +19,7 @@
 #ifndef EAPI_CONFIG_H_
 #define EAPI_CONFIG_H_
 
-#define CMAKE_BUILD_TYPE Debug
+#define CMAKE_BUILD_TYPE @CMAKE_BUILD_TYPE@
 #if CMAKE_BUILD_TYPE == Debug
 #	include <iostream>
 #	include <glibmm/miscutils.h>

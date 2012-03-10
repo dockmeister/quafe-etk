@@ -1,17 +1,26 @@
-/tests/test-eapi/test-eapi
-/quafe/quafe-etk
-/data/quafe-etk.run
-/data/quafe-etk.cfg
-/data/quafe-etk
-/data/images/not_used
-/tests/test_eapi/eapi
-sens_data.h
+/tests/test-eapi/gui-test
+# cmake left overs
 .git
 *~
 *CMakeFiles*
 Makefile
-*.a
-*.so
 install_manifest.txt
 CMakeCache.txt
 cmake_install.cmake
+doxyfile
+quafe-etk.h
+
+# binaries
+quafe-etk
+cli-test
+*.a
+*.so
+
+# sensitive data
+sensitive_data.h
+/data/quafe-etk.cfg
+/tests/test-eapi/data
+
+# misc
+/data/images/not_used
+/docs/api
