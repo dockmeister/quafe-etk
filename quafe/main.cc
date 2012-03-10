@@ -23,7 +23,11 @@
 #include "utility.h"
 #include "application.h"
 #include <eapi/eapi.h>
+#include <eapi/sheets/keyinfo.h>
+#include <boost/lexical_cast.hpp>
+#include <boost/foreach.hpp>
 
+#define foreach BOOST_FOREACH
 #undef TEST_PLUGIN_MANAGER
 
 /*!\brief
@@ -39,9 +43,17 @@ int main(int argc, char **argv) {
 	ustring directory = Quafe::Preferences::get<ustring>("plugin-directory");
 	Quafe::PluginManager::init(directory);
 
-	ustring eapi_dir = Quafe::Preferences::get<ustring>("eapi-directory");
-	if(!EAPI::Main::init(eapi_dir)) {
-		return EXIT_FAILURE;
+	{
+		ustring eapi_dir = Quafe::Preferences::get<ustring>("eapi-directory");
+		if(!EAPI::Main::init(eapi_dir)) {
+			return EXIT_FAILURE;
+		}
+
+		Quafe::AccountInfoList acclist = Quafe::Preferences::get<Quafe::AccountInfoList>("accouts");
+		foreach(Quafe::AccountInfo info, acclist) {
+			int id = boost::lexical_cast<int>(info.authid);
+			EAPI::KeyInfo::create(id, info.authkey);
+		}
 	}
 
 	try {

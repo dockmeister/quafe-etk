@@ -27,7 +27,8 @@
 #include "ui/window.h"
 #include "utility.h"
 
-#include <eapi/keyinfo.h>
+#include <eapi/eapi.h>
+#include <eapi/sheets/keyinfo.h>
 #include <pwd.h>
 #include <iostream>
 #include <fstream>
