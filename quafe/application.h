@@ -20,15 +20,18 @@
 #ifndef APPLICATION_H_
 #define APPLICATION_H_
 
-#include <quafe-etk.h>
+#include <quafe-config.h>
 
-#include "include/singleton.h"
+#include "singleton.h"
+
 #include <gtkmm/main.h>
 #include <gtkmm/object.h>
 
+
+
 namespace Quafe {
 // forward decl to minimize dependencies
-class PluginBase;
+class PluginInterface;
 class ApplicationWindow;
 
 /*! \brief Main application class.
@@ -41,15 +44,6 @@ public:
 
 	const ApplicationWindow * get_window();
 
-	void endisable_plugin(bool active, ustring plugin_id);
-
-	/*!\brief
-	 *
-	 * \param plugin_id
-	 * \return true, if the plugin switch was successful
-	 */
-	gboolean toggle_plugin(ustring plugin_id);
-
 protected:
 	/*! \brief
 	 *
@@ -58,12 +52,17 @@ protected:
 	void quit();
 	ApplicationWindow *app_window;
 
+	bool on_plugin_enabled(const Glib::ustring &id);
+	bool on_plugin_disabled(const Glib::ustring &id);
+	bool on_plugin_activated(const Glib::ustring &id);
+	bool on_plugin_deactivated(const Glib::ustring &id);
+
 private:
 	Application();
 	virtual ~Application();
 
 	gboolean running;
-	PluginBase *m_plugin_current; //!< current activated plugin
+	PluginInterface *m_plugin_current; //!< current activated plugin
 };
 
 }

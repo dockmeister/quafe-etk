@@ -15,27 +15,29 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <eapi/eapi.h>
+#include <eapi/eapi-logging.h>
 
-#include "eapi.h"
-
-#include "request.h"
-#include "exception.h"
-#include "basicapi.h"
-#include "sheetlist.h"
+#include <eapi/request.h>
+#include <eapi/basicapi.h>
+#include <eapi/exception.h>
 
 #include <assert.h>
 #include <boost/bind.hpp>
 #include <glibmm/fileutils.h>
 
+EAPI_DECLARE_STATIC_LOGGER("EAPI");
 
 namespace EAPI {
-
 Main * Main::init(const Glib::ustring &wdir) {
 	try {
 		if (!Glib::thread_supported()) {
 			Glib::thread_init();
 		}
 	} catch (Glib::Error &e) {
+		//LOG_FATAL("Failed to initialize %1", "Glib");
+		//LOG_FATAL("__BASE_FILE__");
+		//Glib::ustring::compose("test", e);
 		throw Exception("Failed to initialize Glib thread system.");
 	}
 
@@ -54,21 +56,21 @@ Main * Main::init(const Glib::ustring &wdir) {
 }
 
 Main::Main() :
-	m_thread_pool(NUM_MAX_THREADS), verbose_(false){
+	m_thread_pool(NUM_MAX_THREADS), verbose_(true){
 
 	Request::signal_debug().connect(boost::bind(&Main::curl_debug_recieved, this));
 	Request::signal_finished().connect(boost::bind(&Main::request_finished, this));
 }
 
 Main::~Main() {
-	DLOG("Shutting down EAPI");
+	LOG_INFO("Shutting down EAPI");
 	m_thread_pool.shutdown();
 	Request::destroy_request_system();
 }
 
-void Main::request(BasicAPI *api, update_callback_t callback_) {
-	DLOG("debugging: " << verbose_);
-	Request *req = new Request(api, callback_, verbose_);
+void Main::request(BasicAPI *api) {
+	LOG_DEBUG("Pushing new API Request to queue. (verbose: " << verbose_ << ")");
+	Request *req = new Request(api, verbose_);
 
 	if (!req->validate()) {
 		throw Exception("something went seriously wrong");
@@ -78,6 +80,9 @@ void Main::request(BasicAPI *api, update_callback_t callback_) {
 }
 
 void Main::request_finished() {
+	if(Request::num_finish_queue() <= 0)
+		return;
+
 	Request *req = Request::pop_finish_queue();
 	EAPI_DELETE(req);
 }
@@ -87,8 +92,15 @@ void Main::request_finished() {
  */
 
 void Main::curl_debug_recieved() {
+	if(Request::num_debug_queue() <= 0)
+		return;
+
 	Glib::ustring msg = Request::pop_debug_queue();
-	signal_verbose_.emit(msg);
+	try {
+		while(size_t pos = msg.find('\n'))
+			msg = msg.replace(pos, 1, " ");
+	} catch(...) {}
+	LOG_DEBUG(msg);
 }
 
 

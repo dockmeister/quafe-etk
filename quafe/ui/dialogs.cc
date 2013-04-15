@@ -15,6 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <quafe-config.h>
 
 #include "dialogs.h"
 
@@ -22,7 +23,7 @@
 
 namespace Quafe {
 
-void show_error_dialog(ustring primary, ustring secondary) {
+void show_error_dialog(Glib::ustring primary, Glib::ustring secondary) {
 	Gtk::MessageDialog dialog(primary, false, Gtk::MESSAGE_ERROR);
 	dialog.set_secondary_text(secondary);
 	dialog.run();

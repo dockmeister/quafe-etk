@@ -5,9 +5,13 @@
  *      Author: cn
  */
 
-#include "request.h"
-#include "basicapi.h"
+#include <eapi/request.h>
+#include <eapi/eapi-logging.h>
+#include <eapi/basicapi.h>
+
 #include <assert.h>
+
+EAPI_DECLARE_STATIC_LOGGER("EAPI");
 
 namespace EAPI {
 
@@ -36,9 +40,14 @@ int Request::curl_debug_callback (CURL *handle, curl_infotype type, char *msg, s
 		return 0;
 	}
 
-	Glib::ustring buf = Glib::ustring(static_cast<char *>(msg), size);
-	push_debug_queue(buf);
-	debug_dispatcher->emit();
+	try {
+		Glib::ustring buf = Glib::ustring(static_cast<char *>(msg), size);
+		push_debug_queue(buf);
+		debug_dispatcher->emit();
+	} catch (...) {
+		//push_debug_queue(Glib::ustring("Debug msg recieved. Unable to cast"));
+		//debug_dispatcher->emit();
+	}
 
 	// curl want a zero back
 	return 0;
@@ -48,17 +57,15 @@ int Request::curl_debug_callback (CURL *handle, curl_infotype type, char *msg, s
  * Curl callbacks
  */
 
-Request::Request(BasicAPI *api, update_callback_t callback_, bool verbose) :
-		m_api(api), callback(callback_), m_verbose(verbose) {
+Request::Request(BasicAPI *api, bool verbose) :
+		m_api(api), m_verbose(verbose), update_result(API_UPDATE_FAILED), curl_result(CURLE_OK) {
 
 	m_curl = curl_easy_init();
 }
 
 Request::~Request() {
-	UpdateResult r = API_UPDATE_OK;
-	if(res != CURLE_OK)
-		r =API_UPDATE_FAILED;
-	callback(r);
+	m_api->finish();
+	m_api->lock_.unlock();
 	curl_easy_cleanup(m_curl);
 }
 
@@ -82,7 +89,7 @@ void Request::run() {
 	// check if this request is valid
 	if(!validate()) {
 		m_api->m_error = "failed to setup request";
-		res = CURLE_FAILED_INIT;
+		curl_result = CURLE_FAILED_INIT;
 		push_finish_queue(this);
 	}
 
@@ -94,7 +101,7 @@ void Request::run() {
 	}
 
 	Glib::ustring post_fields = m_api->get_postfields();
-	Glib::ustring url = "http://api.eveonline.com" + m_api->uri;
+	Glib::ustring url = "https://api.eveonline.com" + m_api->uri;
 
 	curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(m_curl, CURLOPT_POST, 1L);
@@ -105,17 +112,17 @@ void Request::run() {
 	curl_easy_setopt(m_curl, CURLOPT_ERRORBUFFER, m_error);
 
 	{
-		Glib::Mutex::Lock lock_stream(m_api->lock_stream);
-		res = curl_easy_perform(m_curl);
+		curl_result = curl_easy_perform(m_curl);
 
-		if(res == CURLE_OK) {
-			Glib::Mutex::Lock lock_all(m_api->lock_);
+		if(curl_result == CURLE_OK) {
 			m_api->parse_stringstream();
+			update_result = API_UPDATE_OK;
 		} else {
 			if(m_api->m_error.empty()) {
 				m_api->m_error = "unknown error occured";
 			}
-			res = CURLE_SSL_ISSUER_ERROR;
+			curl_result = CURLE_SSL_ISSUER_ERROR;
+			update_result = API_UPDATE_FAILED;
 		}
 	}
 
@@ -157,6 +164,16 @@ const Glib::ustring Request::pop_debug_queue() {
 void Request::push_debug_queue(const Glib::ustring &msg) {
 	Glib::Mutex::Lock lock(*lock_debug_queue);
 	m_debug_queue.push(msg);
+}
+
+int Request::num_finish_queue() {
+	Glib::Mutex::Lock lock(*lock_debug_queue);
+	return (int)m_finish_queue.size();
+}
+
+int Request::num_debug_queue() {
+	Glib::Mutex::Lock lock(*lock_debug_queue);
+	return (int)m_debug_queue.size();
 }
 
 

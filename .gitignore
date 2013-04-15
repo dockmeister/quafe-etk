@@ -1,4 +1,3 @@
-/tests/test-eapi/gui-test
 # cmake left overs
 .git
 *~
@@ -9,8 +8,10 @@ CMakeCache.txt
 cmake_install.cmake
 doxyfile
 quafe-etk.h
+*-config.h
 
 # binaries
+gui-test
 quafe-etk
 cli-test
 *.a
@@ -24,3 +25,5 @@ sensitive_data.h
 # misc
 /data/images/not_used
 /docs/api
+.metadata
+.settings

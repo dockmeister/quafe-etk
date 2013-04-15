@@ -16,51 +16,55 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <quafe-etk.h>
+#include <quafe-config.h>
+#include <quafe-logging.h>
 
 #include "preferences.h"
 #include "pluginmanager.h"
-#include "utility.h"
 #include "application.h"
+
+#include <eapi/exception.h>
 #include <eapi/eapi.h>
 #include <eapi/sheets/keyinfo.h>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
+#include <glibmm/miscutils.h>
 
-#define foreach BOOST_FOREACH
-#undef TEST_PLUGIN_MANAGER
+QUAFE_DECLARE_STATIC_LOGGER("Quafe");
 
 /*!\brief
  *
  */
 int main(int argc, char **argv) {
-	if(Quafe::Preferences::init(argc, argv)) {
+	Gtk::Main kit(argc, argv);
+
+	if (Quafe::Preferences::init(argc, argv)) {
 		return EXIT_SUCCESS;
 	}
 
-	Gtk::Main kit(argc, argv);
-
-	ustring directory = Quafe::Preferences::get<ustring>("plugin-directory");
-	Quafe::PluginManager::init(directory);
-
+	LOG_INFO("Starting quafe-etk. (version: %1, release: %2)", QUAFE_VERSION, QUAFE_BUILD_RELEASE);
 	{
-		ustring eapi_dir = Quafe::Preferences::get<ustring>("eapi-directory");
-		if(!EAPI::Main::init(eapi_dir)) {
+
+		Glib::ustring directory = Glib::build_filename(Quafe::Preferences::get<Glib::ustring>("data-directory"), "plugins");
+		Quafe::PluginManager::init(directory);
+
+		Glib::ustring eapi_dir = Quafe::Preferences::get<Glib::ustring>("config-directory");
+		if (!EAPI::Main::init(eapi_dir)) {
 			return EXIT_FAILURE;
 		}
 
-		Quafe::AccountInfoList acclist = Quafe::Preferences::get<Quafe::AccountInfoList>("accouts");
-		foreach(Quafe::AccountInfo info, acclist) {
-			int id = boost::lexical_cast<int>(info.authid);
-			EAPI::KeyInfo::create(id, info.authkey);
-		}
+		Quafe::Preferences::instance()->parse_account_list();
 	}
 
 	try {
 		Quafe::Application * app = Quafe::Application::instance();
 		app->run();
+	} catch (Quafe::Exception &e) {
+		LOG_FATAL("Exception: %1", e.what());
+		return EXIT_FAILURE;
 	} catch (std::exception &e) {
-		LOG(L_CRITICAL) << e.what();
+		LOG_FATAL("Exception: %1", e.what());
 		return EXIT_FAILURE;
 	}
 

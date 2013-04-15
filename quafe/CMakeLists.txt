@@ -1,16 +1,64 @@
-link_directories(${GTKMM_LIBRARY_DIRS} ${Boost_LIBRARY_DIR})
-include_directories(. ${QUAFE_LIBS_INCLUDE} ${GTKMM_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 
-add_executable (quafe-etk 
-	main.cc application.cc preferences.cc utility.cc pluginmanager.cc
-	ui/modulebar.cc ui/dialog_preferences.cc ui/window.cc ui/dialogs.cc
+PROJECT (quafe-etk)
+
+SET (QUAFE_NAME quafe-etk)
+SET (QUAFE_VERSION_MAJOR 0)
+SET (QUAFE_VERSION_MINOR 1)
+SET (QUAFE_VERSION_PATCH 0+devel)
+SET (QUAFE_PREFIX ${CMAKE_INSTALL_PREFIX})
+SET (QUAFE_BUILD_RELEASE 1)
+
+IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  SET (QUAFE_BUILD_RELEASE 0)
+ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+CONFIGURE_FILE (quafe-config.h.in quafe-config.h)
+CONFIGURE_FILE (../data/quafe-etk.desktop.in ../data/quafe-etk.desktop)
+
+LINK_DIRECTORIES (
+    ${GTKMM_LIBRARY_DIRS} 
+    ${Boost_LIBRARY_DIR}
+    ${EAPI_LIBRARY_DIRS}
+)
+
+INCLUDE_DIRECTORIES (
+    . 
+    ${GTKMM_INCLUDE_DIRS} 
+    ${Boost_INCLUDE_DIR}
+    ${EAPI_INCLUDE_DIRS}
+    ${PUGIXML_INCLUDE_DIRS}
+)
+
+ADD_EXECUTABLE (quafe-etk 
+	main.cc 
+	application.cc 
+	preferences.cc 
+	pluginmanager.cc
+	
+	# Ui stuff
+	ui/applicationwindow.cc 
+	ui/pluginbar.cc 
+	ui/pluginbutton.cc
+	ui/preferences_dialog.cc
+	ui/dialogs.cc
+	
+	# Utilities
+	utils/exception.h
+	
+	# Plugins
+	plugins/pluginbase.cc
+	plugins/pluginutils.cc
+	plugins/pluginwidget.cc
 ) 
 
-target_link_libraries(quafe-etk ${GTKMM_LIBRARIES} ${Boost_LIBRARIES} eapi pugixml boost_program_options)
+TARGET_LINK_LIBRARIES (quafe-etk 
+    ${GTKMM_LIBRARIES} 
+    ${Boost_LIBRARIES}
+    ${EAPI_LIBRARIES}
+    ${PUGIXML_LIBRARIES}
+    curl 
+    boost_program_options
+)
 
-install(TARGETS quafe-etk DESTINATION bin)
+INSTALL (TARGETS quafe-etk DESTINATION bin)
 
-#fake install
-add_custom_target (quafe-fake-install)
-get_target_property (quafe_loc quafe-etk LOCATION)
-add_custom_command (TARGET quafe-fake-install POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${quafe_loc} ${CMAKE_BINARY_DIR}/data/)

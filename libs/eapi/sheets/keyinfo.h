@@ -19,14 +19,15 @@
 #ifndef KEYINFO_H_
 #define KEYINFO_H_
 
-#include "../eapi-config.h"
-#include "../basicapi.h"
-#include "../sheetlist.h"
+#include <eapi/eapi-config.h>
+#include <eapi/basicapi.h>
+#include <eapi/sheetlist.h>
 
 namespace EAPI {
 
-
-
+/*! TODO: write doc
+ *
+ */
 class KeyInfo : public SheetList<KeyInfo>, public BasicAPI {
 public:
 	//! \brief Represents a character available through this API Key.
@@ -35,14 +36,15 @@ public:
 		int id;
 		Glib::ustring name;
 	};
-	typedef std::list<Character> List;
-	typedef List::const_iterator const_iterator;
-	typedef List::iterator iterator;
+
+	typedef std::list<Character> CharacterList;
 
 public:
 	static KeyInfo * create(int keyID, const Glib::ustring &vCode);
 
 	virtual ~KeyInfo();
+
+	virtual void update(const KeyInfo::sheet_slot_t &slot);
 
 	/*! \brief Searches the character list for 'id'
 	 *
@@ -51,9 +53,11 @@ public:
 	 */
 	bool find_character(int characterID) const;
 
+	bool set_character_active(int characterID, bool active);
+
 	const Character & get_character(int characterID) const;
 
-	const List & get_character_list() const;
+	const CharacterList & get_character_list() const;
 
 	/*!\brief Check the API Access mask against a given Mask
 	 *
@@ -73,12 +77,12 @@ protected:
 	 */
 	virtual bool parse_result(const pugi::xml_node &result_row);
 	virtual void parse_character_row(const pugi::xml_node &char_row);
+
+	virtual void finish();
 private:
-	List m_charlist;
+	CharacterList m_charlist;
 	bool active;
 };
 
-
 }
-
 #endif /* KEYINFO_H_ */

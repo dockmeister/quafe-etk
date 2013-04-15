@@ -19,7 +19,8 @@
 #ifndef REQUEST_H_
 #define REQUEST_H_
 
-#include "eapi-config.h"
+#include <eapi/eapi-config.h>
+#include <eapi/types.h>
 
 #include <queue>
 #include <boost/function.hpp>
@@ -48,7 +49,7 @@ protected:
 	static int curl_debug_callback (CURL *handle, curl_infotype type, char *msg, size_t size, void *);
 
 public:
-	Request(BasicAPI *api, update_callback_t callback_, bool verbose = false);
+	Request(BasicAPI *api, bool verbose = false);
 	virtual ~Request();
 
 	//! \brief return whether the request is valid
@@ -58,7 +59,7 @@ public:
 	void run();
 
 	const CURLcode & get_result() {
-		return res;
+		return curl_result;
 	}
 
 	const char* get_error() {
@@ -78,11 +79,17 @@ public:
 	//!< push a debug message to the queue
 	static void push_debug_queue(const Glib::ustring &msg);
 
+	//!< get number of items in debug queue
+	static int num_debug_queue();
+
 	//!< pop a debug message from the queue
 	static Request * pop_finish_queue();
 
 	//!< push a debug message to the queue
 	static void push_finish_queue(Request *req);
+
+	//!< get number of items in finish queue
+	static int num_finish_queue();
 
 	//!< used by
 	static Glib::Dispatcher & signal_debug() {
@@ -95,13 +102,16 @@ public:
 	}
 
 protected:
+	BasicAPI *m_api;
+	bool m_verbose;
+
+	UpdateResult update_result;
+
 	CURL *m_curl;
-	CURLcode res;
+	CURLcode curl_result;
 	char m_error[CURL_ERROR_SIZE];
 
-	BasicAPI *m_api;
-	update_callback_t callback;
-	bool m_verbose;
+
 
 	static Glib::Dispatcher *debug_dispatcher;
 	static Glib::Mutex *lock_debug_queue;

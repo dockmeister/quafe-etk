@@ -1,0 +1,59 @@
+/**
+ *  Quafe - Eve tools for linux.
+ *  Copyright (C) 2012 Christoph Nikic
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+#ifndef QUAFE_ETK_H_
+#define QUAFE_ETK_H_
+
+#define QUAFE_NAME "@QUAFE_NAME@"
+#define QUAFE_STRING "@QUAFE_NAME@ @QUAFE_VERSION_MAJOR@.@QUAFE_VERSION_MINOR@.@QUAFE_VERSION_PATCH@"
+#define QUAFE_VERSION_MAJOR @QUAFE_VERSION_MAJOR@
+#define QUAFE_VERSION_MINOR @QUAFE_VERSION_MINOR@
+#define QUAFE_VERSION_PATCH @QUAFE_VERSION_PATCH@
+#define QUAFE_VERSION "@QUAFE_VERSION_MAJOR@.@QUAFE_VERSION_MINOR@.@QUAFE_VERSION_PATCH@"
+#define QUAFE_PREFIX "@QUAFE_PREFIX@"
+#define QUAFE_DATADIR "@QUAFE_PREFIX@/share/quafe-etk"
+
+#define QUAFE_BUILD_RELEASE @QUAFE_BUILD_RELEASE@
+#define HAVE_LOG4CXX @LOG4CXX_FOUND@
+
+#define QUAFE_DELETE(ptr); if(ptr) {delete ptr; ptr=0;}
+
+#if ENABLE_NLS
+#	include <glibmm/i18n-lib.h>
+#else
+#	define _(String) String
+#endif
+
+#if HAVE_LOG4CXX
+#	include <log4cxx/logger.h>
+#	define QUAFE_DECLARE_CLASS_LOGGER(domain) private: \
+		::log4cxx::LoggerPtr mClassLogger; \
+		protected: \
+			inline ::log4cxx::LoggerPtr logger() { \
+				if(!mClassLogger) { \
+					mClassLogger = ::log4cxx::Logger::getLogger(domain); \
+				} \
+				return mClassLogger; \
+			} \
+		private:
+#else
+#	define QUAFE_DECLARE_CLASS_LOGGER(domain)
+#endif /* HAVE_LOG4CXX */
+
+#endif /* QUAFE_ETK_H_ */

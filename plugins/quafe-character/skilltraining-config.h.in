@@ -1,0 +1,39 @@
+/**
+ *  Quafe - Eve tools for linux.
+ *  Copyright (C) 2012 Christoph Nikic
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef QUAFE_SKILLTRAINING_CONFIG_H_
+#define QUAFE_SKILLTRAINING_CONFIG_H_
+
+#define QUAFE_SKILLTRAINING_NAME "@quafe_skilltraining_NAME@"
+#define QUAFE_SKILLTRAINING_STRING "@quafe_skilltraining_NAME@ @quafe_skilltraining_VERSION_MAJOR@.@quafe_skilltraining_VERSION_MINOR@.@quafe_skilltraining_VERSION_PATCH@"
+#define QUAFE_SKILLTRAINING_VERSION_MAJOR @quafe_skilltraining_VERSION_MAJOR@
+#define QUAFE_SKILLTRAINING_VERSION_MINOR @quafe_skilltraining_VERSION_MINOR@
+#define QUAFE_SKILLTRAINING_VERSION_PATCH @quafe_skilltraining_VERSION_PATCH@
+#define QUAFE_SKILLTRAINING_VERSION "@quafe_skilltraining_VERSION_MAJOR@.@quafe_skilltraining_VERSION_MINOR@.@quafe_skilltraining_VERSION_PATCH@"
+
+#include <utility.h>
+#define LOG(level) Log().print(level, "EAPI")
+
+#define CMAKE_BUILD_TYPE @CMAKE_BUILD_TYPE@
+#if CMAKE_BUILD_TYPE == Debug
+# 	define DLOG() Log().print(L_DEBUG, "EAPI")
+#else
+#	define DLOG()
+#endif
+
+#endif /* QUAFE_SKILLTRAINING_CONFIG_H_ */

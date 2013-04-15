@@ -15,26 +15,30 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <quafe-config.h>
 
 #include "preferences.h"
-#include "preferences_translator.h"
+#include "preferences_translator.hpp"
 
 #include "application.h"
 #include "pluginmanager.h"
-#include "include/pluginbase.h"
+#include "plugins/plugininterface.h"
 #include "ui/dialogs.h"
-#include "ui/dialog_preferences.h"
-#include "ui/window.h"
-#include "utility.h"
+#include "ui/preferences_dialog.h"
+#include "ui/applicationwindow.h"
 
 #include <eapi/eapi.h>
 #include <eapi/sheets/keyinfo.h>
 #include <pwd.h>
 #include <iostream>
-#include <fstream>
 #include <boost/bind.hpp>
 #include <glibmm/fileutils.h>
 #include <glibmm/regex.h>
+#include <gtkmm/builder.h>
+#include <glibmm/miscutils.h>
+#include <boost/lexical_cast.hpp>
+
+QUAFE_DECLARE_STATIC_LOGGER("EAPI");
 
 namespace Quafe {
 
@@ -47,24 +51,32 @@ bool Preferences::init(int argc, char **argv) {
 
 	pref->parse_config_file();
 
+	//[ Checking for valid directories
+	if (!Glib::file_test(get<Glib::ustring>("data-directory"), Glib::FILE_TEST_IS_DIR)) {
+		LOG_WARN("Data directory doesnt exists or is not writable : '" << get<Glib::ustring>("data-directory") << "'");
+		return true;
+	}
+	//]
+
 	return false;
 }
 
 Preferences::Preferences() :
-	opt_cli("Command line arguments"), opt_general("quafe-etk") {
+	opt_cli("Command line arguments"), opt_general("quafe-etk"), m_dialog(0) {
 
 	m_config_path = default_config_path();
 
-	ustring dir_data = ustring(QUAFE_DATADIR);
-	ustring dir_plugins = build_filename(dir_data, "plugins");
-	ustring dir_eapi = m_config_path;
+	Glib::ustring dir_data = Glib::ustring(QUAFE_DATADIR);
+	Glib::ustring dir_plugins = Glib::build_filename(dir_data, "plugins");
+	Glib::ustring dir_eapi = m_config_path;
 
-	opt_cli.add_options()("help,h", "print this message")("version,v", "")("config-directory",
-			po::value(&m_config_path)->default_value(m_config_path), "Set the path where the configuration and any Eve API related file are stored")(
-			"eapi-directory", po::value<ustring>()->default_value(dir_eapi), "Set the path where EAPI resources are stored")("plugin-directory",
-			po::value<ustring>()->default_value(dir_plugins), "Set the path where plugins and resources are stored")("data-directory",
-			po::value<ustring>()->default_value(dir_data), "Set the path where EAPI resources are stored")("minimize,m ",
-			po::value<bool>()->default_value(false), "Start quafe-etk minimized")("silent,s", po::value<bool>()->default_value(false), "");
+	opt_cli.add_options()
+			("help,h", "print this message")
+			("version,v", "")
+			("config-directory", po::value(&m_config_path)->default_value(m_config_path), "Set the path where the configuration and any Eve API related file are stored")
+			("data-directory", po::value<Glib::ustring>()->default_value(dir_data), "Set the path where EAPI resources are stored")
+			("minimize,m ", po::value<bool>()->default_value(false), "Start quafe-etk minimized")
+			("silent,s", po::value<bool>()->default_value(false), "");
 
 	opt_general.add_options()
 			("maximized", po::value<bool>()->default_value(false))
@@ -79,6 +91,10 @@ Preferences::~Preferences() {
 }
 
 void Preferences::show_settings() {
+	if(m_dialog == 0) {
+		throw Exception("Dialog is not initialized");
+	}
+
 	int response = m_dialog->run();
 
 	//[ apply and save settings
@@ -89,73 +105,175 @@ void Preferences::show_settings() {
 }
 
 void Preferences::create_dialog(Gtk::Window &window) {
-	m_dialog = new PreferenceDialog("Preferences", window, true);
-	m_dialog->action_add_api_key = boost::bind(&Preferences::apply_api_changes, this, _1, _2, _3);
+	Glib::ustring glade_file = Glib::build_filename(get<Glib::ustring>("data-directory"), "ui", "preferences.glade");
+
+	if(!Glib::file_test(glade_file, Glib::FILE_TEST_EXISTS)) {
+		throw Exception("Could not locate Gladefile: " + glade_file);
+	}
+
+	Glib::RefPtr<Gtk::Builder> builder = Gtk::Builder::create_from_file(glade_file);
+
+	builder->get_widget_derived("DialogPreferences", m_dialog);
+
+	m_dialog->set_parent(window);
+	m_dialog->signal_api_added(boost::bind(&Preferences::on_api_add, this, _1, _2));
+	m_dialog->signal_api_deleted(boost::bind(&Preferences::on_delete_api, this, _1));
+	m_dialog->signal_character_toggled(boost::bind(&Preferences::on_api_character_toggled, this, _1, _2, _3));
+
 
 	//[ insert account info into dialog treestore
-	AccountInfoList::iterator it = m_account_list.begin();
-	for (; it != m_account_list.end(); ++it) {
-		AccountInfo acc_info = *it;
-		Gtk::TreeModel::Row row = *(m_dialog->m_refTreeModel->append());
-		m_dialog->insert_api_row(row, acc_info.active, acc_info.authid, acc_info.authkey, ustring(""));
+	for (EAPI::KeyInfo::const_iterator it = EAPI::KeyInfo::begin(); it != EAPI::KeyInfo::end(); ++it) {
+		EAPI::KeyInfo *key = (*it);
+		Gtk::TreeModel::Row api_row = m_dialog->insert_api_row(key->value<Glib::ustring>("keyID"), key->value<Glib::ustring>("vCode"), true);
 
-		Gtk::TreeModel::Row child = *(m_dialog->m_refTreeModel->append(row.children()));
-		m_dialog->insert_api_row(child, acc_info.characters[0].first, ustring(""), ustring(""), acc_info.characters[0].second);
-
-		child = *(m_dialog->m_refTreeModel->append(row.children()));
-		m_dialog->insert_api_row(child, acc_info.characters[1].first, ustring(""), ustring(""), acc_info.characters[1].second);
-
-		child = *(m_dialog->m_refTreeModel->append(row.children()));
-		m_dialog->insert_api_row(child, acc_info.characters[2].first, ustring(""), ustring(""), acc_info.characters[2].second);
-	}
-	//]
-
-}
-
-void Preferences::apply_api_changes(const ustring &keyID, const ustring &vCode, API_CHANGE chg) {
-	if (chg == API_ADD) {
-		//[ TODO check if api is valid and fetch characters (make it sensitive/no async here)
-		EAPI::KeyInfo *m_key;
-		try {
-			m_key = EAPI::KeyInfo::create(keyID, vCode);
-		} catch (EAPI::Exception &e) {
-			show_error_dialog("Failed to add API Key.", e.what());
-			return;
+		EAPI::KeyInfo::CharacterList c_list = key->get_character_list();
+		EAPI::KeyInfo::CharacterList::const_iterator ct = c_list.begin();
+		for(; ct != c_list.end(); ++ct) {
+			m_dialog->insert_character_row(api_row, boost::lexical_cast<Glib::ustring>((*ct).id), (*ct).name, (*ct).active);
 		}
-		//]
-
-		//[ insert AccountInfo into settings
-		AccountInfo acc_info = { true, keyID, vCode };
-		acc_info.characters[0] = std::make_pair<gboolean, ustring>(true, "TestChar1");
-		acc_info.characters[1] = std::make_pair<gboolean, ustring>(false, "TestChar2");
-		acc_info.characters[2] = std::make_pair<gboolean, ustring>(false, "TestChar3");
-
-		m_account_list.push_back(acc_info);
-		//]
-
-		//[ apply changes to the Dialog
-		PreferenceDialog *dialog = static_cast<PreferenceDialog *> (m_dialog);
-		Gtk::TreeModel::Row row = *(dialog->m_refTreeModel->append());
-		dialog->insert_api_row(row, acc_info.active, acc_info.authid, acc_info.authkey, ustring(""));
-
-		Gtk::TreeModel::Row child = *(dialog->m_refTreeModel->append(row.children()));
-		dialog->insert_api_row(child, acc_info.characters[0].first, ustring(""), ustring(""), acc_info.characters[0].second);
-
-		child = *(dialog->m_refTreeModel->append(row.children()));
-		dialog->insert_api_row(child, acc_info.characters[1].first, ustring(""), ustring(""), acc_info.characters[1].second);
-
-		child = *(dialog->m_refTreeModel->append(row.children()));
-		dialog->insert_api_row(child, acc_info.characters[2].first, ustring(""), ustring(""), acc_info.characters[2].second);
-		//]
-
-		return;
 	}
 
-	if (chg == API_DELETE) {
-		show_error_dialog("Function not supported yet", "Delete the Account manually by editing the config file.");
-		return;
-	}
+//	EAPI::KeyInfo::begin();
+//	AccountInfoList::iterator it = m_account_list.begin();
+//	for (; it != m_account_list.end(); ++it) {
+//		AccountInfo acc_info = *it;
+//		Gtk::TreeModel::Row row = *(m_dialog->m_refTreeModel->append());
+//		m_dialog->insert_api_row(row, acc_info.active, acc_info.authid, acc_info.authkey, Glib::ustring(""));
+//
+//		Gtk::TreeModel::Row child = *(m_dialog->m_refTreeModel->append(row.children()));
+//		m_dialog->insert_api_row(child, acc_info.characters[0].first, Glib::ustring(""), Glib::ustring(""), acc_info.characters[0].second);
+//
+//		child = *(m_dialog->m_refTreeModel->append(row.children()));
+//		m_dialog->insert_api_row(child, acc_info.characters[1].first, Glib::ustring(""), Glib::ustring(""), acc_info.characters[1].second);
+//
+//		child = *(m_dialog->m_refTreeModel->append(row.children()));
+//		m_dialog->insert_api_row(child, acc_info.characters[2].first, Glib::ustring(""), Glib::ustring(""), acc_info.characters[2].second);
+//	}
+//	//]
+
 }
+
+void Preferences::on_api_add(const Glib::ustring &keyID, const Glib::ustring &vCode) {
+	EAPI::KeyInfo *m_key;
+	try {
+		int ikeyID = boost::lexical_cast<int>(keyID);
+		m_key = EAPI::KeyInfo::create(ikeyID, vCode);
+	} catch (EAPI::Exception &e) {
+		show_error_dialog("Failed to add API Key.", e.what());
+		return;
+	} catch(...) {
+		show_error_dialog("Failed to add API Key.", "The keyID is not a valid number");
+		return;
+	}
+
+	try {
+		m_key->update(boost::bind(&Preferences::on_api_add_callback, this, _1));
+	} catch(EAPI::NotOutdatedException &e) {
+		// api is still up to date (most likely from cache)
+		on_api_add_callback(m_key);
+		return;
+	} catch (EAPI::Exception &e) {
+		LOG_DEBUG(e.what());
+		return;
+	}
+
+	m_dialog->set_sensitive(false);
+}
+
+void Preferences::on_api_add_callback(EAPI::KeyInfo *key) {
+	m_dialog->set_sensitive(true);
+	LOG_DEBUG("callback recieved!");
+
+	if(key->check_status(EAPI::API_STATUS_ERROR) > 0) {
+		show_error_dialog("Failed to add API Key.", key->m_error);
+		EAPI::KeyInfo::remove(key);
+		return;
+	}
+
+	//EAPI::KeyInfo::List char_list = key->get_character_list();
+	//EAPI::KeyInfo::const_iterator it = key->get_character_list().begin();
+}
+
+void Preferences::on_delete_api(const Glib::ustring &keyID) {
+
+}
+
+bool Preferences::on_api_character_toggled(const Glib::ustring &keyID, const Glib::ustring &cID, bool active) {
+	int keyid_t;
+	int cid_t;
+	try {
+		keyid_t = boost::lexical_cast<int>(keyID);
+		cid_t = boost::lexical_cast<int>(cID);
+	} catch(...) {
+		return false;
+	}
+
+	EAPI::KeyInfo *key;
+	if(!EAPI::KeyInfo::find(keyid_t, key)) {
+		return false;
+	}
+
+	if(!key->find_character(cid_t)) {
+		return false;
+	}
+
+	key->set_character_active(cid_t, active);
+	return true;
+}
+
+//void Preferences::apply_api_changes(const Glib::ustring &keyID, const Glib::ustring &vCode, API_CHANGE chg) {
+//	if (chg == API_ADD) {
+//		//[ TODO check if api is valid and fetch characters (make it sensitive/no async here)
+//		EAPI::KeyInfo *m_key = 0;
+//		try {
+//			int ikeyID = boost::lexical_cast<int>(keyID);
+//			m_key = EAPI::KeyInfo::create(ikeyID, vCode);
+//		} catch (EAPI::Exception &e) {
+//			show_error_dialog("Failed to add API Key.", e.what());
+//			return;
+//		} catch(...) {
+//			show_error_dialog("Failed to add API Key.", "The keyID is not a valid number");
+//			return;
+//		}
+//		//]
+//
+//		// make sensitive
+//		//m_key->update_sync();
+//		// ? abort
+//		// insert key
+//
+//		//[ insert AccountInfo into settings
+//		AccountInfo acc_info = { true, keyID, vCode };
+//		acc_info.characters[0] = std::make_pair<gboolean, Glib::ustring>(true, "TestChar1");
+//		acc_info.characters[1] = std::make_pair<gboolean, Glib::ustring>(false, "TestChar2");
+//		acc_info.characters[2] = std::make_pair<gboolean, Glib::ustring>(false, "TestChar3");
+//
+//		m_account_list.push_back(acc_info);
+//		//]
+//
+//		//[ apply changes to the Dialog
+//		PreferenceDialog *dialog = static_cast<PreferenceDialog *> (m_dialog);
+//		Gtk::TreeModel::Row row = *(dialog->m_refTreeModel->append());
+//		dialog->insert_api_row(row, acc_info.active, acc_info.authid, acc_info.authkey, Glib::ustring(""));
+//
+//		Gtk::TreeModel::Row child = *(dialog->m_refTreeModel->append(row.children()));
+//		dialog->insert_api_row(child, acc_info.characters[0].first, Glib::ustring(""), Glib::ustring(""), acc_info.characters[0].second);
+//
+//		child = *(dialog->m_refTreeModel->append(row.children()));
+//		dialog->insert_api_row(child, acc_info.characters[1].first, Glib::ustring(""), Glib::ustring(""), acc_info.characters[1].second);
+//
+//		child = *(dialog->m_refTreeModel->append(row.children()));
+//		dialog->insert_api_row(child, acc_info.characters[2].first, Glib::ustring(""), Glib::ustring(""), acc_info.characters[2].second);
+//		//]
+//
+//		return;
+//	}
+//
+//	if (chg == API_DELETE) {
+//		show_error_dialog("Function not supported yet", "Delete the Account manually by editing the config file.");
+//		return;
+//	}
+//}
 
 // ******************************************************************
 // methods to load and save settings
@@ -178,18 +296,17 @@ gboolean Preferences::parse_command_line(int argc, char **argv) {
 
 gboolean Preferences::parse_config_file() {
 	//[ load or create configfile
-	ustring cfg_file = build_filename(m_config_path, "quafe-etk.cfg");
+	Glib::ustring cfg_file = build_filename(m_config_path, "quafe-etk.cfg");
 
-	if (!file_test(cfg_file, FILE_TEST_EXISTS)) {
-		LOG(L_NOTICE) << "Configuration file not found. Writing default config to: '" << cfg_file << "'";
+	if (!Glib::file_test(cfg_file, Glib::FILE_TEST_EXISTS)) {
+		LOG_INFO("Configuration file not found. Writing default config to: '" << cfg_file << "'");
 		return save_config_file();
 	}
 
-	pugi::xml_document doc;
 	pugi::xml_parse_result result = doc.load_file(cfg_file.c_str());
 
 	if (!result) {
-		LOG(L_WARNING) << "Failed to load configuration: " << result.description();
+		LOG_WARN("Failed to load configuration: " << result.description());
 		return false;
 	}
 	//]
@@ -202,15 +319,15 @@ gboolean Preferences::parse_config_file() {
 	pugi::xml_node root = doc.document_element();
 	pugi::xml_node_iterator it = root.begin();
 	for (; it != root.end(); ++it) {
-		//[ Parse account settings
-		if (Regex::match_simple("^account-list$", it->name())) {
-			translate<AccountInfoList>::from(*it, m_account_list);
+		//[ save account list to temporary
+		//[ EAPI is not initialized yet
+		if (Glib::Regex::match_simple("^account-list$", it->name())) {
 			continue;
 		}
 		//]
 
 		//[ Parse plugin preferences
-		if (Regex::match_simple("^plugin-list$", it->name())) {
+		if (Glib::Regex::match_simple("^plugin-list$", it->name())) {
 			PluginInfoList plugin_list = PluginManager::instance()->get_plugin_list();
 			translate<PluginInfoList>::from(*it, plugin_list);
 			continue;
@@ -234,14 +351,32 @@ gboolean Preferences::parse_config_file() {
 	return true;
 }
 
+void Preferences::parse_account_list() {
+	EAPI::KeyInfo *key = 0;
+
+	pugi::xml_node account_list = doc.document_element().child("account-list");
+	if(account_list.empty()) {
+		return;
+	}
+
+	pugi::xml_node_iterator it = account_list.begin();
+	for(; it != account_list.end(); ++it) {
+		if(Glib::Regex::match_simple("^account$", it->name())) {
+			translate<EAPI::KeyInfo>::from(*it, *key);
+		} else
+			LOG_WARN("unknown xml option found within account-list");
+	}
+
+}
+
 gboolean Preferences::save_config_file() {
-	pugi::xml_document doc;
+	doc.reset();
 	pugi::xml_node root = doc.append_child("quafe-etk");
 
 	//[ iterate over General options
 	po::variables_map::const_iterator it = vmap.begin();
 	for (; it != vmap.end(); ++it) {
-		const ustring pref_name = (*it).first;
+		const Glib::ustring pref_name = (*it).first;
 		const po::variable_value pref_value = (*it).second;
 
 		// create a new xml_node
@@ -253,8 +388,8 @@ gboolean Preferences::save_config_file() {
 			continue;
 		}
 
-		if (pref_value.value().type() == typeid(ustring)) {
-			translate<ustring>::to(node, pref_value);
+		if (pref_value.value().type() == typeid(Glib::ustring)) {
+			translate<Glib::ustring>::to(node, pref_value);
 			continue;
 		}
 
@@ -264,21 +399,23 @@ gboolean Preferences::save_config_file() {
 		}
 
 		// no translator found!
-		LOG(L_DEBUG) << "No translator found for preference: '" << pref_name << "'";
+		LOG_DEBUG("No translator found for preference: '" << pref_name << "'");
 		//]
 	}
 	//]
 
 	//[ Parsing window settings
-	const ApplicationWindow *win = Application::instance()->get_window();
+	if(Application::is_initialized()) {
+		const ApplicationWindow *win = Application::instance()->get_window();
 
-	root.child("maximized").attribute("value") = win->is_maximized();
-
-	if(!win->is_maximized()) {
-		int w, h;
-		win->get_size(w, h);
-		root.child("size-width").attribute("value") = w;
-		root.child("size-height").attribute("value") = h;
+		if(!win->is_maximized()) {
+			int w, h;
+			win->get_size(w, h);
+			root.child("size-width").attribute("value") = w;
+			root.child("size-height").attribute("value") = h;
+		} else {
+			root.child("maximized").attribute("value") = true;
+		}
 	}
 	//]
 
@@ -288,19 +425,23 @@ gboolean Preferences::save_config_file() {
 	translate<PluginInfoList>::to(pl_node, plugin_list);
 
 	pugi::xml_node ac_node = root.append_child("account-list");
-	translate<AccountInfoList>::to(ac_node, m_account_list);
+	for(EAPI::KeyInfo::iterator it = EAPI::KeyInfo::begin(); it != EAPI::KeyInfo::end(); it++) {
+		const EAPI::KeyInfo *key = (*it);
+		translate<EAPI::KeyInfo>::to(ac_node, key);
+	}
+
 	//]
 
 	//[ finally save the config file
-	ustring cfg_file = build_filename(m_config_path, "quafe-etk.cfg");
+	Glib::ustring cfg_file = Glib::build_filename(m_config_path, "quafe-etk.cfg");
 
 	// check if directory exists
-	if (!file_test(m_config_path, FILE_TEST_IS_DIR)) {
-		// try to create directory
-		if (!make_dir(m_config_path)) {
-			LOG(L_WARNING) << "could not create directory '" << m_config_path << "'";
+	if (!Glib::file_test(m_config_path, Glib::FILE_TEST_IS_DIR)) {
+		//TODO: try to create directory
+		//if (!Gio::make_dir(m_config_path)) {
+			LOG_WARN("could not create directory '" << m_config_path << "'");
 			return false;
-		}
+		//}
 	}
 
 	doc.save_file(cfg_file.c_str());
@@ -312,21 +453,21 @@ gboolean Preferences::save_config_file() {
 // ******************************************************************
 // private helper methods
 
-ustring Preferences::default_config_path() {
-	ustring def_cfgdir = "/tmp";
+Glib::ustring Preferences::default_config_path() {
+	Glib::ustring def_cfgdir = "/tmp";
 	uid_t user_id = geteuid();
 	// FIXME memory leak
 	struct passwd* user_info = getpwuid(user_id);
 	// TODO switch to Glib::get_config_dir() ||
 	if (user_info && user_info->pw_dir) {
 		try {
-			Dir home_dir(user_info->pw_dir);
+			Glib::Dir home_dir(user_info->pw_dir);
 			def_cfgdir = user_info->pw_dir;
-		} catch (FileError &fe) {
-			LOG(L_WARNING) << fe.what();
+		} catch (Glib::FileError &fe) {
+			LOG_WARN(fe.what());
 		}
 	} else {
-		LOG(L_WARNING) << "Using /tmp as config dir. Any configuration will be lost!";
+		LOG_WARN("Using /tmp as config dir. Any configuration will be lost!");
 	}
 
 	return def_cfgdir + "/.quafe-etk/";

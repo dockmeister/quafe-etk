@@ -19,42 +19,43 @@
 #ifndef PREFERENCES_H_
 #define PREFERENCES_H_
 
-#include <quafe-etk.h>
+#include "singleton.h"
+#include "utils/exception.h"
 
-#include "include/pluginbase.h"
-#include "include/singleton.h"
 #include <pugixml/pugixml.hpp>
 #include <boost/any.hpp>
 #include <boost/program_options.hpp>
+#include <gtkmm/window.h>
 
+namespace EAPI {
+class KeyInfo;
+}
 namespace Quafe {
-
 // forward decl to minimize dependencies
-class PluginDecl;
-class PluginBase;
+class PluginInterface;
 class PreferenceDialog;
-
-namespace po = boost::program_options;
-
 
 /*!\brief
  *
  */
 struct AccountInfo {
-	gboolean active;
-	ustring authid;
-	ustring authkey;
-	std::pair<gboolean, ustring> characters[3];
+	bool active;
+	Glib::ustring authid;
+	Glib::ustring authkey;
+	std::pair<bool, Glib::ustring> characters[3];
 };
 
 typedef std::list<AccountInfo> AccountInfoList;
-typedef std::map<ustring, boost::any> PreferenceMap;
+
+namespace po = boost::program_options;
+
+typedef std::map<Glib::ustring, boost::any> PreferenceMap;
 
 /*!\brief
  *
  */
-class Preferences : public Singleton<Preferences> {
-	friend class Singleton<Preferences>;
+class Preferences: public Singleton<Preferences> {
+	friend class Singleton<Preferences> ;
 public:
 	static bool init(int argc, char **argv);
 
@@ -63,14 +64,19 @@ public:
 	 * \param option the identifier to the option
 	 * \return the value for option
 	 */
-	template <class ValueType>
-	static const ValueType& get(ustring option) {
-		//ValueType &s = boost::any_cast<ValueType>(&(instance()->m_settings[option]));
-		return instance()->vmap[option].as<ValueType>();
+	template<class ValueType>
+	static const ValueType get(Glib::ustring option) {
+		ValueType v;
+		try {
+			v = m_instance->vmap[option].as<ValueType>();
+		} catch (...) {
+			throw Exception("bad any cast: unknown option '" + option + "'");
+		}
+		return v;
 	}
 
-	/*< creates the dialog. called from application after the main window is created */
-		void create_dialog(Gtk::Window &window);
+	/*!< creates the dialog. called from application after the main window is created */
+	void create_dialog(Gtk::Window &window);
 
 	/*!\brief opens the settings window */
 	void show_settings();
@@ -88,17 +94,24 @@ public:
 	 */
 	gboolean parse_config_file();
 
+	/*!\brief parses the accountlist node
+	 * 		  We cannot parse the account list within parse_config_file since EAPI is not initialized then
+	 */
+	void parse_account_list();
+
 	/*!\brief tries to save a config file
 	 * \return true if the config file was successfully saved
 	 */
 	gboolean save_config_file();
 
 protected:
+	void on_api_add(const Glib::ustring &keyID, const Glib::ustring &vCode);
+	void on_api_add_callback(EAPI::KeyInfo *key);
 
+	void on_delete_api(const Glib::ustring &keyID);
 
+	bool on_api_character_toggled(const Glib::ustring &keyID, const Glib::ustring &cID, bool active);
 
-	/*< applies changes made in the dialog to AccountInfoList */
-	void apply_api_changes(const ustring &auth_id, const ustring &auth_key, API_CHANGE chg);
 
 	/*< */
 	void insert_api_to_treestore();
@@ -106,25 +119,25 @@ protected:
 private:
 	Preferences();
 	virtual ~Preferences();
-	
-	template <typename T>
+
+	template<typename T>
 	struct translate {
 		static void to(pugi::xml_node &node, const po::variable_value &value);
 		static void to(pugi::xml_node &node, const T &value);
+		static void to(pugi::xml_node &node, const T *&value);
 
 		static void from(const pugi::xml_node &node, T &value);
 	};
 
-	ustring m_config_path;
+	Glib::ustring m_config_path;
 
-	AccountInfoList m_account_list;
+	pugi::xml_document doc;
 	po::variables_map vmap;
 	po::options_description opt_cli, opt_general, opt_all;
 
-	ustring default_config_path();
-	ustring default_data_path();
 
-
+	Glib::ustring default_config_path();
+	Glib::ustring default_data_path();
 
 	PreferenceDialog *m_dialog;
 };

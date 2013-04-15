@@ -8,10 +8,8 @@
 #ifndef PLUGINMANAGER_H_
 #define PLUGINMANAGER_H_
 
-#include <quafe-etk.h>
-
-#include "include/singleton.h"
-#include "include/pluginbase.h"
+#include "singleton.h"
+#include "plugins/plugininterface.h"
 
 #define DEBUG_ 1
 
@@ -22,19 +20,19 @@ namespace Quafe {
  * 		Use the function pointer 'create' and 'destroy' to handle the plugin.
  * 		'plugin_id' should be a unique string to identify the plugin.
  */
-typedef struct PluginInfo {
+struct PluginInfo {
 	void* dlhandle;
 	Quafe::create_t *create; /*!< */
 	Quafe::destroy_t *destroy;
-	Quafe::PluginBase *ptr;
+	Quafe::PluginInterface *ptr;
 
 	bool active;
 	bool found;
 
-	ustring file;
-	ustring id;
-	ustring title;
-	ustring icon;
+	Glib::ustring  file;
+	Glib::ustring  id;
+	Glib::ustring  title;
+	Glib::ustring  icon;
 
 	bool validate() {
 		if(id == "" || title == "" || icon == "")
@@ -46,6 +44,11 @@ typedef struct PluginInfo {
 	PluginInfo() {
 		ptr = 0;
 		create = 0;
+		dlhandle = 0;
+		destroy = 0;
+		create = 0;
+		found = false;
+		active = false;
 	}
 };
 
@@ -54,7 +57,7 @@ typedef std::list<PluginInfo> PluginInfoList;
 class PluginManager : public Singleton<PluginManager> {
 	friend class Singleton<PluginManager>;
 public:
-	static void init(ustring &directory);
+	static void init(Glib::ustring &directory);
 public:
 	void open_all();
 	bool open(PluginInfo &info);
@@ -68,8 +71,8 @@ public:
 	void destroy_all();
 	void destroy(PluginInfo &info);
 
-	bool find(const ustring id, PluginBase *&plugin);
-	bool find(const ustring id, PluginInfo &info);
+	bool find(const Glib::ustring id, PluginInterface *&plugin);
+	bool find(const Glib::ustring id, PluginInfo &info);
 
 #ifdef DEBUG_
 	void hard_reset(PluginInfo &info);
@@ -82,10 +85,10 @@ public:
 protected:
 	PluginManager();
 
-	void read_plugin_dir(const ustring &directory);
+	void read_plugin_dir(const Glib::ustring &directory);
 private:
 	PluginInfoList m_plugin_list;
-	ustring m_plugin_path;
+Glib::ustring  m_plugin_path;
 
 };
 

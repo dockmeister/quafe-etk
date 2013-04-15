@@ -9,13 +9,13 @@ using namespace Glib;
 
 //enum EAPI_
 struct EAPI_Key {
-	ustring keyID;
-	ustring vCode;
+Glib::ustring  keyID;
+Glib::ustring  vCode;
 
 	std::stringstream so;
 
 	const char* make_postfields() {
-		ustring p = "keyID=" + keyID + "&vCode=" + vCode;
+	Glib::ustring  p = "keyID=" + keyID + "&vCode=" + vCode;
 		return p.c_str();
 	}
 
@@ -23,7 +23,7 @@ struct EAPI_Key {
 static size_t write_data(void *contents, size_t size, size_t nmemb, void *eapi_) {
 	EAPI_Key *m_key = static_cast<EAPI_Key *>(eapi_);
 
-	ustring buf = ustring(static_cast<char *>(contents), size * nmemb);
+Glib::ustring  buf = ustring(static_cast<char *>(contents), size * nmemb);
 
 	m_key->so.write(buf.c_str(), (std::streamsize) buf.size());
 

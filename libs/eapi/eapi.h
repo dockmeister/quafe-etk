@@ -16,32 +16,28 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EAPI_H_
-#define EAPI_H_
+#ifndef EAPIMAIN_H_
+#define EAPIMAIN_H_
 
-#include "eapi-config.h"
-#include "exception.h"
+#include <eapi/eapi-config.h>
+#include <eapi/singleton.h>
 
-#include <boost/signal.hpp>
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
+#include <boost/signals2.hpp>
 #include <glibmm/thread.h>
 #include <glibmm/threadpool.h>
-
-
-
-#include "singleton.h"
 
 namespace EAPI {
 class Request;
 class BasicAPI;
-struct SheetListDestructor;
 
 
 class Main : public Quafe::Singleton<Main> {
 	friend class Quafe::Singleton<Main>;
 public:
-	/*!
+	//!<
+	typedef boost::signals2::signal<void (const Glib::ustring &)> signal_verbose_t;
+
+	/*!\brief
 	 *
 	 * @param dir
 	 * @return
@@ -54,10 +50,9 @@ public:
 
 
 
-	virtual void request(BasicAPI *api, update_callback_t callback_);
+	virtual void request(BasicAPI *api);
 
 	virtual void request_finished();
-
 
 	//!< gets the current working directory
 	virtual const Glib::ustring & get_working_dir() {
@@ -65,18 +60,19 @@ public:
 	}
 
 protected:
+	Main();
+
 	//!< sets the working directory for EAPI. should only be called once
 	virtual void set_working_dir(const Glib::ustring &wdir) {
 		m_workdir = wdir;
 	}
 private:
-	Main();
-	std::list<SheetListDestructor *> m_sheetlist;
+
 	Glib::ThreadPool m_thread_pool;
 	Glib::ustring m_workdir;
 
 public:
-	//!< Once verbose is enabled connect to signal_verbose() to recieve debug messages
+	//!< Once verbose is enabled connect to signal_verbose() to receive debug messages
 	void set_verbose(bool verbose) {
 		verbose_ = verbose;
 	}
@@ -86,16 +82,17 @@ public:
 		return verbose_;
 	}
 
-	//!< Connect to signal_verbose to recieve debug output
-	sigc::signal<void, const Glib::ustring &> & signal_verbose() {
-		return signal_verbose_;
+	//!< Connect to signal_verbose to receive debug output
+	boost::signals2::connection signal_verbose(const signal_verbose_t::slot_type &slot) {
+		return m_signal_verbose.connect(slot);
 	}
 
 public:
 	//!< Is connected to the Request::Dispatcher to allow interprocess communication
 	void curl_debug_recieved();
 
-	sigc::signal<void, const Glib::ustring &> signal_verbose_;
+private:
+	signal_verbose_t m_signal_verbose;
 	bool verbose_;
 };
 

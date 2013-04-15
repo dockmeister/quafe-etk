@@ -19,13 +19,15 @@
 #ifndef SHEETMANAGER_H_
 #define SHEETMANAGER_H_
 
-#include "eapi-config.h"
-#include "basicapi.h"
-#include <algorithm>
+#include <eapi/types.h>
+#include <eapi/basicapi.h>
+
 #include <list>
 #include <boost/bind.hpp>
+#include <boost/signals2.hpp>
 
 namespace EAPI {
+
 /*
  *
  */
@@ -33,8 +35,42 @@ template<class API>
 class SheetList {
 public:
 	typedef typename std::list<API *> List;
-	typedef typename std::list<API *>::iterator Iterator;
+	typedef typename std::list<API *>::iterator iterator;
+	typedef typename std::list<API *>::const_iterator const_iterator;
+	typedef typename boost::signals2::signal<void(API*)> sheet_signal_t;
+	typedef typename boost::signals2::signal<void(API*)>::slot_type sheet_slot_t;
+	typedef boost::signals2::connection slot_connection_t;
+
 public:
+	virtual ~SheetList() {
+	}
+	/*!\brief connects a new slot to signal_sheet_added signal
+	 *
+	 * @param slot
+	 * @return the signal connection object
+	 */
+	static boost::signals2::connection signal_sheet_added(const sheet_slot_t &slot) {
+		return m_signal_sheet_added.connect(slot);
+	}
+
+	/*!\brief connects a new slot to signal_sheet_removed signal
+	 *
+	 * @param slot
+	 * @return the signal connection object
+	 */
+	static boost::signals2::connection signal_sheet_removed(const sheet_slot_t &slot) {
+		return m_signal_sheet_removed.connect(slot);
+	}
+
+	/*!\brief connects a new slot to signal_sheet_updated signal
+	 *
+	 * @param slot
+	 * @return the signal connection object
+	 */
+	static boost::signals2::connection signal_sheet_updated(const sheet_slot_t &slot) {
+		return m_signal_sheet_updated.connect(slot);
+	}
+
 	/*! \brief Finds a specific sheet by id
 	 *
 	 * @param id
@@ -48,11 +84,17 @@ public:
 	template<typename _Predicate>
 	static bool find_if(_Predicate __pred, API *&ptr);
 
-	static Iterator begin();
-	static Iterator end();
+	static iterator begin();
+	static iterator end();
 	static void remove(API *);
+
+	virtual void update(const sheet_slot_t &slot) = 0;
 protected:
 	static API * manage(API *);
+
+	// TODO: bad design 'signal_sheet_updated' should be implemented in BasicAPI
+	static sheet_signal_t m_signal_sheet_updated;
+	slot_connection_t sig_connection;
 
 private:
 	/*! \brief Destructor for SheetList<API>
@@ -63,7 +105,10 @@ private:
 		~Destructor() {
 			typename List::iterator it = m_sheet_list.begin();
 			for (; it != m_sheet_list.end(); ++it) {
-				EAPI_DELETE(*it);
+				if((*it) != 0) {
+					delete (*it);
+					(*it) = 0;
+				}
 			}
 			m_sheet_list.clear();
 		}
@@ -71,9 +116,21 @@ private:
 	friend class Destructor;
 
 	static List m_sheet_list;
+	static sheet_signal_t m_signal_sheet_added;
+	static sheet_signal_t m_signal_sheet_removed;
 
 	static bool once;
 };
+
+template<class API>
+typename SheetList<API>::sheet_signal_t SheetList<API>::m_signal_sheet_added;
+
+template<class API>
+typename SheetList<API>::sheet_signal_t SheetList<API>::m_signal_sheet_removed;
+
+template<class API>
+typename SheetList<API>::sheet_signal_t SheetList<API>::m_signal_sheet_updated;
+
 
 template<class API>
 typename SheetList<API>::List SheetList<API>::m_sheet_list;
@@ -88,30 +145,40 @@ API * SheetList<API>::manage(API *api) {
 		static Destructor destruct;
 	}
 	m_sheet_list.push_back(api);
+
+	SheetList<API>::m_signal_sheet_added(api);
 	return api;
 }
 
 template<class API>
 template<typename _Predicate>
 bool SheetList<API>::find_if(_Predicate __pred, API *&ptr) {
-	Iterator it = std::find_if(m_sheet_list.begin(), m_sheet_list.end(),
-			__pred);
+	iterator it = std::find_if(m_sheet_list.begin(), m_sheet_list.end(), __pred);
 
 	if (it == m_sheet_list.end())
 		return false;
 
-	//DLOG("address = " << *it << " ref = " << &(*it) << " a val: " (*it)->id);
 	ptr = (*it);
 	return true;
 }
 
 template<class API>
-typename SheetList<API>::Iterator SheetList<API>::begin() {
+void SheetList<API>::remove(API *api) {
+	if(api != 0) {
+		SheetList<API>::m_signal_sheet_removed(api);
+		m_sheet_list.remove(api);
+		delete api;
+		api = 0;
+	}
+}
+
+template<class API>
+typename SheetList<API>::iterator SheetList<API>::begin() {
 	return m_sheet_list.begin();
 }
 
 template<class API>
-typename SheetList<API>::Iterator SheetList<API>::end() {
+typename SheetList<API>::iterator SheetList<API>::end() {
 	return m_sheet_list.end();
 }
 

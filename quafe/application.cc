@@ -15,30 +15,42 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <quafe-logging.h>
 
 #include "application.h"
 
 #include "pluginmanager.h"
 #include "preferences.h"
-#include "ui/window.h"
-#include "ui/modulebar.h"
+#include "ui/applicationwindow.h"
+#include "plugins/plugininterface.h"
+
 #include <boost/bind.hpp>
 #include <gtkmm/main.h>
+#include <glibmm/miscutils.h>
+
+QUAFE_DECLARE_STATIC_LOGGER("Quafe");
 
 namespace Quafe {
 
 // ******************************************************************
 // Application class control
 Application::Application() :
-	app_window(new ApplicationWindow), running(false), m_plugin_current(0) {
+		running(false), m_plugin_current(0) {
 
-	//[ bind actions and create the Application window
-	app_window->action_quit = boost::bind(&Application::quit, this);
-	app_window->action_preferences = boost::bind(&Preferences::show_settings, Preferences::instance());
-	app_window->action_endisable_plugin = boost::bind(&Application::endisable_plugin, this, _1, _2);
-	app_window->m_ptrModulebar->action_plugin_requested = boost::bind(&Application::toggle_plugin, this, _1);
+	Glib::ustring data_dir = Preferences::get<Glib::ustring>("data-directory");
 
-	app_window->create_window();
+	//[ Using glade to create main window and connecting signals
+	Glib::ustring glade_file = Glib::build_filename(data_dir, "ui", "applicationwindow.glade");
+	Glib::RefPtr<Gtk::Builder> refBuilder = Gtk::Builder::create_from_file(glade_file);
+
+	refBuilder->get_widget_derived("ApplicationWindow", app_window);
+
+	app_window->signal_hide().connect(boost::bind(&Application::quit, this));
+	app_window->signal_plugin_enabled(boost::bind(&Application::on_plugin_enabled, this, _1));
+	app_window->signal_plugin_enabled(boost::bind(&Application::on_plugin_disabled, this, _1));
+	app_window->signal_plugin_activated(boost::bind(&Application::on_plugin_activated, this, _1));
+	app_window->signal_plugin_deactivated(boost::bind(&Application::on_plugin_deactivated, this, _1));
+
 	//]
 
 	Preferences::instance()->create_dialog(*app_window);
@@ -47,17 +59,16 @@ Application::Application() :
 	PluginInfoList p_list = PluginManager::instance()->get_plugin_list();
 	PluginInfoList::iterator it = p_list.begin();
 
-	for(; it != p_list.end(); ++it) {
+	for (; it != p_list.end(); ++it) {
 		PluginInfo info = *it;
-		if(!info.validate())
+		if (!info.validate())
 			continue;
 
-		ustring icon_path = build_filename(Preferences::get<ustring>("data-directory"), "images", info.icon);
+		Glib::ustring icon_path = Glib::build_filename(Preferences::get<Glib::ustring>("data-directory"), "images", info.icon);
 		app_window->add_plugin(info.id, info.title, icon_path, info.active);
 	}
 	//]
 }
-
 
 Application::~Application() {
 	m_plugin_current = 0;
@@ -78,49 +89,62 @@ void Application::run() {
 void Application::quit() {
 	if (running) {
 		running = false;
-		LOG(L_NOTICE) << "quafe-etk shutting down...";
+		LOG_INFO("quafe-etk shutting down...");
 		app_window->hide();
 	}
 }
 
-
 // *******************************************************************
 // Plugin methods
-
-gboolean Application::toggle_plugin(ustring plugin_id) {
-	PluginBase *plugin = 0;
-
-	if (!PluginManager::instance()->find(plugin_id, plugin)) {
-		LOG(L_ERROR) << "Unknown plugin '" << plugin_id << "' requested";
+bool Application::on_plugin_enabled(const Glib::ustring &id) {
+	PluginInfo info;
+	if (!PluginManager::instance()->find(id, info)) {
+		LOG_ERROR("Unable to find plugin '%1'.", id);
 		return false;
 	}
 
-	if (plugin == m_plugin_current) {
-		LOG(L_DEBUG) << "Plugin '" << plugin_id << "' already loaded.";
-		return false;
-	}
+	PluginManager::instance()->destroy(info);
 
-	if (m_plugin_current == 0 || (m_plugin_current && m_plugin_current->close())) {
-		m_plugin_current = plugin;
-		app_window->show_plugin_widget(m_plugin_current->show());
-
-		return true;
-	}
-
-	return false;
+	return true;
 }
 
-void Application::endisable_plugin(bool active, ustring plugin_id) {
+bool Application::on_plugin_disabled(const Glib::ustring &id) {
 	PluginInfo info;
-	if(!PluginManager::instance()->find(plugin_id, info))
-		return;
-
-	// FIXME seg fault at toggeling twice
-	if(active) {
-		PluginManager::instance()->create(info);
-	} else {
-		PluginManager::instance()->destroy(info);
+	if (!PluginManager::instance()->find(id, info)) {
+		LOG_ERROR("Unable to find plugin '%1'.", id);
+		return false;
 	}
+
+	PluginManager::instance()->create(info);
+
+	return true;
+}
+
+bool Application::on_plugin_activated(const Glib::ustring &id) {
+	PluginInterface *plugin = 0;
+	if (!PluginManager::instance()->find(id, plugin)) {
+		LOG_ERROR("Unknown plugin '%1' requested.", id);
+		return false;
+	}
+
+	app_window->show_plugin_widget(plugin->show());
+
+	return true;
+}
+
+bool Application::on_plugin_deactivated(const Glib::ustring &id) {
+	PluginInterface *plugin = 0;
+	if (!PluginManager::instance()->find(id, plugin)) {
+		LOG_ERROR("Unknown plugin '%1' requested.", id);
+		return false;
+	}
+
+	if(!plugin || !plugin->close()) {
+		LOG_ERROR("Failed to close plugin '%1'.", id);
+		return false;
+	}
+
+	return true;
 }
 
 const ApplicationWindow * Application::get_window() {

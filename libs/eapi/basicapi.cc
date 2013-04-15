@@ -15,56 +15,55 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <eapi/basicapi.h>
+#include <eapi/eapi-logging.h>
+#include <eapi/eapi.h>
 
-#include "basicapi.h"
-
-#include "eapi.h"
-#include "exception.h"
-
-#include <boost/any.hpp>
-#include <boost/lexical_cast.hpp>
 #include <giomm/file.h>
 #include <glibmm/fileutils.h>
 #include <glibmm/miscutils.h>
+#include <glibmm/datetime.h>
+
+EAPI_DECLARE_STATIC_LOGGER("EAPI");
 
 namespace EAPI {
 BasicAPI::BasicAPI(const int id_, const ApiConfig &cfg) :
-		id(id_), uri(cfg.uri), cache(cfg.cache), m_status(API_STATUS_INVALID) {
+		id(id_), uri(cfg.uri), cache(cfg.cache), m_status(0) {
 
 	m_filename = Glib::build_filename(Main::instance()->get_working_dir(), cfg.filename);
+	m_value_map["cachedUntil"] = Glib::DateTime::create_utc(0,0,0,0,0,0);
 }
 
 BasicAPI::~BasicAPI() {
 }
 
 int BasicAPI::check_status(int status_flags) {
-	if(m_status & API_STATUS_INVALID) {
-		if(m_status & !m_error.empty()) {
-			m_status |= API_STATUS_ERROR;
-		}
+	if(!m_error.empty() || (m_status & API_STATUS_ERROR)) {
+		assert((m_status & API_STATUS_VALID) == 0);
+		assert((m_status & API_STATUS_ERROR) > 0);
 		return (m_status & status_flags);
 	}
 
-	// once here we can assert cachedUntil is set
-	Glib::DateTime cache = boost::any_cast<Glib::DateTime>(m_value_map["cachedUntil"]);
-	Glib::TimeSpan diff  = cache.difference(Glib::DateTime::create_now_utc());
-	if(diff < 0) {
-		DLOG("Document is outdated!");
-		m_status |= API_STATUS_OUTDATED;
-	} else {
-		m_status |= API_STATUS_CACHED;
+	if(m_status & API_STATUS_VALID) {
+		// once here we can assert cachedUntil is set
+		Glib::DateTime cache = value<Glib::DateTime>("cachedUntil");
+		Glib::TimeSpan diff  = cache.difference(Glib::DateTime::create_now_utc());
+		if(diff < 0) {
+			m_status |= API_STATUS_OUTDATED;
+		} else {
+			m_status |= API_STATUS_CACHED;
+		}
 	}
 
 	return (m_status & status_flags);
 }
 
-
-void BasicAPI::update(update_callback_t callback_) {
+void BasicAPI::update() {
 	if(!lock_.trylock()) {
 		throw Exception("A update is already running!");
 	}
 
-	if(check_status(API_STATUS_OUTDATED) == 0) {
+	if(check_status(API_STATUS_CACHED) > 0) {
 		throw NotOutdatedException();
 	}
 
@@ -72,28 +71,28 @@ void BasicAPI::update(update_callback_t callback_) {
 	m_error.clear();
 	m_errno.clear();
 
-	Main::instance()->request(this, callback_);
+	Main::instance()->request(this);
 }
 
 /********************************************************************************************
  * Parse methods
  */
-
-void BasicAPI::parse_cache() {
+bool BasicAPI::parse_cache() {
 	if(!Glib::file_test(m_filename, Glib::FILE_TEST_EXISTS))
-		return;
+		return false;
 
+	// Locks this sheet until this method is finished.
 	Glib::Mutex::Lock lock(lock_);
+
 	pugi::xml_parse_result result = m_document.load_file(m_filename.c_str());
 	if (!result) {
 		m_error = result.description();
-		return;
+		return false;
 	}
 
-	DLOG("Document was found in cache");
+	LOG_DEBUG("Document was found in cache");
 
-	if(parse_xml_document())
-		m_status = API_STATUS_VALID & API_STATUS_CACHED;
+	return parse_xml_document();
 }
 
 bool BasicAPI::parse_stringstream() {
@@ -124,10 +123,12 @@ bool BasicAPI::parse_stringstream() {
 }
 
 bool BasicAPI::parse_xml_document() {
+	int vremove = API_STATUS_OUTDATED & API_STATUS_CACHED & API_STATUS_ERROR;
 	//[ Check if the document is a valid eveapi document
 	pugi::xml_node root = m_document.child("eveapi");
 	if (!root || root.attribute("version").as_int() != 2) {
 		m_error = "The result is not a valid Eve API v2 document";
+		m_status = (m_status & vremove) | API_STATUS_ERROR; // remove VALID-flag add ERROR-flag
 		return false;
 	}
 
@@ -135,6 +136,7 @@ bool BasicAPI::parse_xml_document() {
 	if (error) {
 		m_errno = error.attribute("code").value();
 		m_error = error.child_value();
+		m_status = (m_status & vremove) | API_STATUS_ERROR; // remove VALID-flag add ERROR-flag
 		return false;
 	}
 	//]
@@ -144,13 +146,43 @@ bool BasicAPI::parse_xml_document() {
 	m_value_map["cachedUntil"] = ustring_to_datetime(Glib::ustring(root.child("cachedUntil").child_value()));
 
 	// let the actual api implementation do the rest
-	return parse_result(root.child("result"));
+	if(parse_result(root.child("result"))) {
+		m_status = API_STATUS_VALID; // remove ERROR-flag add VALID-flag
+		return true;
+	}
+
+	m_status = (m_status & vremove) | API_STATUS_ERROR; // remove VALID-flag add ERROR-flag
+	return false;
 	//]
 }
 
 /********************************************************************************************
  * public little helper
  */
+template <>
+const Glib::ustring BasicAPI::value<Glib::ustring>(const Glib::ustring w) const {
+	ValueMap::const_iterator it = m_value_map.find(w);
+
+	if(it == m_value_map.end()) {
+		throw Exception("Value '" + w + "' not found. Check status first!");
+	}
+
+	Glib::ustring val;
+
+	if(it->second.type() == typeid(Glib::ustring)) {
+		val = boost::any_cast<Glib::ustring>(it->second);
+
+	} else if(it->second.type() == typeid(int)) {
+		int any = boost::any_cast<int>(it->second);
+		val = boost::lexical_cast<Glib::ustring>(any);
+
+	} else {
+		throw Exception("Bad any cast: '" +w+ "'");
+	}
+
+	return val;
+}
+
 const Glib::ustring BasicAPI::get_document() {
 	Glib::Mutex::Lock lock(lock_);
 	std::stringstream doc;
@@ -194,7 +226,7 @@ const Glib::ustring BasicAPI::get_postfields() {
 		ss << "&characterID=" << boost::any_cast<int>(m_value_map["characterID"]);
 	}
 
-	DLOG(ss.str());
+	LOG_TRACE(ss);
 	return ss.str();
 }
 }

@@ -16,16 +16,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "keyinfo.h"
-#include "exception.h"
+#include <eapi/sheets/keyinfo.h>
+#include <eapi/eapi-logging.h>
+#include <eapi/exception.h>
 
 #include <assert.h>
 #include <boost/lexical_cast.hpp>
 #include <glibmm/miscutils.h>
 
+EAPI_DECLARE_STATIC_LOGGER("EAPI");
+
 namespace EAPI {
 
-ApiConfig config = {
+KeyInfo::ApiConfig config = {
 		"apikey.xml",
 		"/account/APIKeyInfo.xml.aspx",
 		CACHE_STYLE_SHORT
@@ -45,7 +48,7 @@ KeyInfo * KeyInfo::create(int keyID, const Glib::ustring &vCode) {
 }
 
 KeyInfo::KeyInfo(int keyID, const Glib::ustring &vCode) :
-	BasicAPI(keyID, config) {
+	BasicAPI(keyID, config), active(false) {
 
 	m_value_map["keyID"] = keyID;
 	m_value_map["vCode"] = vCode;
@@ -54,22 +57,33 @@ KeyInfo::KeyInfo(int keyID, const Glib::ustring &vCode) :
 }
 
 KeyInfo::~KeyInfo() {
-	DLOG("destroying keyinfo" << id);
+	LOG_DEBUG("destroying KeyInfo[" << id << "]");
 }
 
 bool KeyInfo::find_character(int characterID) const {
-	const_iterator it = std::find_if(m_charlist.begin(), m_charlist.end(), boost::bind(&Character::id, _1) == characterID);
-	return (it != m_charlist.end() && (*it).active);
+	CharacterList::const_iterator it = std::find_if(m_charlist.begin(), m_charlist.end(), boost::bind(&Character::id, _1) == characterID);
+	return (it != m_charlist.end());
+}
+
+bool KeyInfo::set_character_active(int characterID, bool active) {
+	if(!find_character(characterID)) {
+		return false;
+	}
+
+	CharacterList::iterator it = std::find_if(m_charlist.begin(), m_charlist.end(), boost::bind(&Character::id, _1) == characterID);
+	assert(it != m_charlist.end());
+	(*it).active = active;
+	return true;
 }
 
 const KeyInfo::Character & KeyInfo::get_character(int characterID) const {
 	assert(m_charlist.size() > 0);
-	const_iterator it = std::find_if(m_charlist.begin(), m_charlist.end(), boost::bind(&Character::id, _1) == characterID);
+	CharacterList::const_iterator it = std::find_if(m_charlist.begin(), m_charlist.end(), boost::bind(&Character::id, _1) == characterID);
 	assert(it != m_charlist.end());
 	return (*it);
 }
 
-const KeyInfo::List & KeyInfo::get_character_list() const {
+const KeyInfo::CharacterList & KeyInfo::get_character_list() const {
 	return m_charlist;
 }
 
@@ -77,14 +91,29 @@ bool KeyInfo::check_cakAccess(int access) {
 	return true;
 }
 
-//	<result>
-//		<key accessMask="268435455" type="Account" expires="">
-//			<rowset name="characters" key="characterID" columns="characterID,characterName,corporationID,corporationName">
-//				<row characterID="123456789" characterName="Character Name" corporationID="1000014" corporationName="Perkone" />
-//				<row characterID="987654321" characterName="Name Character" corporationID="1000015" corporationName="KalaiDingsDa" />
-//			</rowset>
-//		</key>
-//	</result>
+/********************************************************************************************
+ * Parse & update methods
+ *
+ *	<result>
+ *		<key accessMask="268435455" type="Account" expires="">
+ *			<rowset name="characters" key="characterID" columns="characterID,characterName,corporationID,corporationName">
+ *				<row characterID="123456789" characterName="Character Name" corporationID="1000014" corporationName="Perkone" />
+ *				<row characterID="987654321" characterName="Name Character" corporationID="1000015" corporationName="KalaiDingsDa" />
+ *			</rowset>
+ *		</key>
+ *	</result>
+ */
+void KeyInfo::update(const KeyInfo::sheet_slot_t &slot) {
+	if(sig_connection.connected())
+		sig_connection.disconnect();
+	sig_connection = signal_sheet_updated(slot);
+	BasicAPI::update();
+}
+
+void KeyInfo::finish() {
+	m_signal_sheet_updated(this);
+}
+
 bool KeyInfo::parse_result(const pugi::xml_node &result) {
 	assert(result); // once this method is called it should be a valid api v2 document
 
@@ -101,10 +130,10 @@ bool KeyInfo::parse_result(const pugi::xml_node &result) {
 void KeyInfo::parse_character_row(const pugi::xml_node &char_row) {
 	//<row characterID="123456789" characterName="Character Name" corporationID="1000014" corporationName="Perkone" />
 	Character c;
-	c.active = true;
+	c.active = false;
 	c.id = char_row.attribute("characterID").as_int();
 	c.name = char_row.attribute("characterName").value();
-	DLOG("char found: " << c.name);
+	LOG_DEBUG("char found: " << c.name);
 	m_charlist.push_back(c);
 }
 }

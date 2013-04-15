@@ -1,10 +1,32 @@
-link_directories(${GTKMM_LIBRARY_DIRS} ${Boost_LIBRARY_DIR})
-include_directories(. ../../quafe ${GTKMM_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+SET (QUAFE_SKILLTRAINING "")
 
-add_library (quafe-character SHARED
-	charinfo.cc
-) 
+SET (quafe_skilltraining_NAME quafe-skilltraining)
+SET (quafe_skilltraining_VERSION_MAJOR 0)
+SET (quafe_skilltraining_VERSION_MINOR 1)
+SET (quafe_skilltraining_VERSION_PATCH 0+devel)
 
-target_link_libraries(quafe-character ${GTKMM_LIBRARIES} ${Boost_LIBRARIES})
+CONFIGURE_FILE (skilltraining-config.h.in skilltraining-config.h)
 
-install(TARGETS quafe-character DESTINATION share/quafe-etk/plugins)
+INCLUDE_DIRECTORIES (
+	${QUAFE_INCLUDE_DIR}
+	${QUAFE_LIBS_INCLUDE}
+	${GTKMM_INCLUDE_DIRS} 
+	${Boost_INCLUDE_DIR}
+)
+
+LINK_DIRECTORIES (
+	${GTKMM_LIBRARY_DIRS} 
+	${Boost_LIBRARY_DIR}
+)
+
+SET (quafe_skilltraining_SOURCES
+	skilltraining.cc
+	characternotebook.cc
+	characterpage.cc
+)
+
+ADD_LIBRARY (quafe-skilltraining SHARED ${quafe_skilltraining_SOURCES}) 
+
+target_link_libraries(quafe-skilltraining ${GTKMM_LIBRARIES} ${Boost_LIBRARIES})
+
+install(TARGETS quafe-skilltraining DESTINATION share/quafe-etk/plugins)

@@ -19,44 +19,18 @@
 #ifndef EAPI_CONFIG_H_
 #define EAPI_CONFIG_H_
 
-#define CMAKE_BUILD_TYPE Debug
-#if CMAKE_BUILD_TYPE == Debug
-#	include <iostream>
-#	include <glibmm/miscutils.h>
-# 	define DLOG(msg); std::cout << Glib::path_get_basename(__FILE__) << ":" << __LINE__ << " :\t"<< msg << std::endl;
-#else
-#	define DLOG(msg);
-#endif
+#define EAPI_NAME "eapi"
+#define EAPI_STRING "eapi 0.1.0+devel"
+#define EAPI_VERSION_MAJOR 0
+#define EAPI_VERSION_MINOR 1
+#define EAPI_VERSION_PATCH 0+devel
+#define EAPI_VERSION "0.1.0+devel"
+#define EAPI_PREFIX "/usr/local"
+
+#define EAPI_BUILD_RELEASE 0
+#define HAVE_LOG4CXX 1
 
 #define EAPI_DELETE(ptr); if(ptr) {delete ptr; ptr=0;}
 #define NUM_MAX_THREADS 3
 
-#include <pugixml/pugixml.hpp>
-#include <glibmm/ustring.h>
-#include <boost/function.hpp>
-namespace EAPI {
-
-
-
-enum CacheStyle {
-	CACHE_STYLE_SHORT, CACHE_STYLE_MSHORT, CACHE_STYLE_LONG
-};
-
-enum UpdateResult {
-	API_UPDATE_OK, API_UPDATE_FAILED
-};
-
-enum StatusFlags {
-	API_STATUS_VALID = 1 << 0,
-	API_STATUS_INVALID = 1 << 1, //!< No API-Data at all. No file in cache and no online data
-	API_STATUS_CACHED = 1 << 2, //!< API-Data loaded from file and no new version available
-	API_STATUS_OUTDATED = 1 << 3, //!< API-Data loaded from file and a new version is available
-	API_STATUS_ERROR = 1 << 4 //!< An error occured \see errno & error
-};
-
-enum AccessMask {
-	CAK_CHARACTERSHEET = 1 << 0
-};
-typedef boost::function<void (UpdateResult)> update_callback_t;
-}
 #endif /* EAPI_CONFIG_H_ */

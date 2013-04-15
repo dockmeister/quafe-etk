@@ -15,16 +15,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #ifndef DIALOGS_H_
 #define DIALOGS_H_
 
-#include <quafe-etk.h>
+#include <glibmm/ustring.h>
 
 namespace Quafe {
 
 /*< shows a Gtk::MessageDialog with MessageType=ERROR */
-void show_error_dialog(ustring primary, ustring secondary);
+void show_error_dialog(Glib::ustring primary, Glib::ustring secondary);
 }
 
 #endif /* DIALOGS_H_ */

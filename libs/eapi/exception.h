@@ -16,9 +16,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EXCEPTION_H_
-#define EXCEPTION_H_
+#ifndef _EAPI_EXCEPTION_H_
+#define _EAPI_EXCEPTION_H_
 
+#include <typeinfo>
 #include <glibmm/exception.h>
 
 namespace EAPI {
@@ -39,6 +40,24 @@ public:
 	NotOutdatedException();
 };
 
+template<class T>
+class BadValueException : public Exception {
+public:
+	BadValueException(const Glib::ustring &val)
+		: Exception("") {
+		error_ = Glib::ustring::compose("Invalid access for value: %1", val);
+	}
+};
+
+template<class T>
+class BadValueCastException : public Exception {
+public:
+	BadValueCastException(const Glib::ustring &index, const T &value)
+		: Exception("") {
+		error_ = Glib::ustring::compose("Invalid cast for value: %1 to %2", index, typeid(T).name());
+	}
+};
+
 }
 
-#endif /* EXCEPTION_H_ */
+#endif /* _EAPI_EXCEPTION_H_ */

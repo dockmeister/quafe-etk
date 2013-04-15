@@ -1,0 +1,54 @@
+@define-color pcolor __COLOR__;
+* {
+	engine: unico;
+	-GtkButton-outer-border: 0;
+    -GtkButton-inner-border: 0;
+	-GtkButton-default-border: 0;
+	-unico-inner-stroke-radius:6;
+	-unico-outer-stroke-width:0;
+    -unico-focus-border-color: alpha (@pcolor, 0.5);
+    -unico-focus-border-radius: 0;
+    -unico-focus-fill-color: alpha (@pcolor, 0.1);
+    -unico-focus-outer-stroke-color: transparent;
+	color: rgb(210, 210, 210);
+	border-color: @pcolor;
+	border-width:0px;
+	border-image-width: 0px;
+	border-image-source: none;
+	background-image: -gtk-gradient (linear, left top, left bottom,
+		from (shade (@pcolor, 1.0)),
+		to (shade (@pcolor, 1.0)));
+}
+
+GtkEventBox {
+	background-color: @pcolor;
+}
+
+GtkButton, .button {
+	-unico-inner-stroke-width: 0;
+	-unico-inner-stroke-color: @pcolor;
+	color: rgb(255, 255, 255);
+}
+
+GtkButton:hover, .button:hover {
+	-unico-inner-stroke-width: 1;
+	-unico-focus-border-radius: 0;
+	-unico-inner-stroke-color: shade(@pcolor, 0.3);
+	border-style:outset;
+	border-color: shade(@pcolor, 0.3);
+	border-image-width: 10 10 10 10;
+	background-image: -gtk-gradient (linear, left top, left bottom,
+		from (shade (@pcolor, 1.5)),
+		to (shade (@pcolor, 1.1)));
+}
+
+GtkButton:active, .button:active {
+	-unico-inner-stroke-width: 1;
+	-unico-focus-border-radius: 0;
+	-unico-inner-stroke-color: shade(@pcolor, 0.3);
+	border-style:inset;
+	background-image: -gtk-gradient (linear, left top, left bottom,
+		from (shade (@pcolor, 1.5)),
+		to (shade (@pcolor, 1.1)));
+}
+

@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "exception.h"
+#include <eapi/exception.h>
 
 namespace EAPI {
 
