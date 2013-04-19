@@ -3,7 +3,7 @@ Installation
 
 ### Getting the sourcecode
   
-    git clone git@github.com/dockmeister/quafe-etk
+    git clone git://github.com/dockmeister/quafe-etk.git
 
 ### Installing dependencies
 
