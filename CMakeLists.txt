@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 SET (CMAKE_BUILD_TYPE Debug CACHE STRING "default to debug" FORCE)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fmessage-length=0")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -fmessage-length=0")
 SET (CMAKE_CXX_FLAGS_DEBUG "-O1 -g")
 SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -17,14 +17,19 @@ ENDMACRO ()
 
 FIND_PACKAGE (PkgConfig REQUIRED)
 FIND_PACKAGE (Boost REQUIRED COMPONENTS program_options thread)
-Q_FIND_FILE("Boost_signals2" "boost/signals2.hpp" "Unable to locate Boosts signals2.hpp. Check your Boost installation")
+#Q_FIND_FILE("Boost_signals2" "boost/signals2.hpp" "Unable to locate Boosts signals2.hpp. Check your Boost installation")
 
 pkg_check_modules(GIOMM REQUIRED giomm-2.4)
 pkg_check_modules(GLIBMM REQUIRED glibmm-2.4)
 pkg_check_modules(GTKMM REQUIRED gtkmm-3.0)
-
+pkg_check_modules(CURL REQUIRED libcurl)
 # optional packages
+SET (HAVE_LOG4CXX 0)
 pkg_check_modules(LOG4CXX liblog4cxx)
+IF (EXISTS ${LOG4CXX_FOUND})
+    SET (HAVE_LOG4CXX 1)
+ENDIF (EXISTS ${LOG4CXX_FOUND})
+
 FIND_PACKAGE (Doxygen)
 
 SET (QUAFE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/quafe")

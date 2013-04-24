@@ -9,6 +9,7 @@ cmake_install.cmake
 doxyfile
 quafe-etk.h
 *-config.h
+*.desktop
 
 # binaries
 gui-test
@@ -16,6 +17,8 @@ quafe-etk
 cli-test
 *.a
 *.so
+*.exe
+*.dll
 
 # sensitive data
 sensitive_data.h

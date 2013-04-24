@@ -20,7 +20,11 @@
 
 namespace EAPI {
 
-Exception::Exception(const Glib::ustring &msg, const Glib::ustring &errno) :
+Exception::Exception(const Glib::ustring msg) :
+	error_(msg), errno_("") {
+}
+
+Exception::Exception(const Glib::ustring msg, const Glib::ustring errno) :
 	error_(msg), errno_(errno) {
 }
 

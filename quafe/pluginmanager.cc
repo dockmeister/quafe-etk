@@ -4,10 +4,8 @@
  *  Created on: 02.03.2012
  *      Author: cn
  */
-#include <quafe-config.h>
-
+#include <quafe-logging.h>
 #include "pluginmanager.h"
-
 
 #include <dlfcn.h>
 #include <boost/bind.hpp>
@@ -18,20 +16,14 @@
 QUAFE_DECLARE_STATIC_LOGGER("EAPI");
 
 namespace Quafe {
-
-void PluginManager::init(Glib::ustring &directory) {
-	PluginManager *pm = PluginManager::instance();
-	pm->read_plugin_dir(directory);
-	pm->open_all();
-	pm->create_all();
+PluginManager::PluginManager() {
 }
 
 void PluginManager::read_plugin_dir(const Glib::ustring &directory) {
 	m_plugin_path = directory;
 
 	if (!Glib::file_test(m_plugin_path, Glib::FILE_TEST_IS_DIR)) {
-		// TODO throw exception
-		LOG_WARN("Plugin-directory not found: '" << m_plugin_path << "'");
+		LOG_WARN("Plugin-directory not found: '%1'", m_plugin_path);
 		return;
 	}
 
@@ -62,7 +54,7 @@ void PluginManager::read_plugin_dir(const Glib::ustring &directory) {
 
 	// TODO remove plugins which are not available but have a configuration
 
-	LOG_INFO("Plugin path: " << m_plugin_path << " (" << m_plugin_list.size() << " plugins discovered)");
+	LOG_INFO("Plugin path: %1 (%2 plugins discoverd)", m_plugin_path, m_plugin_list.size());
 }
 
 void PluginManager::open_all() {

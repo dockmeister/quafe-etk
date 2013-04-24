@@ -28,7 +28,17 @@
 #define EAPI_PREFIX "@EAPI_PREFIX@"
 
 #define EAPI_BUILD_RELEASE @EAPI_BUILD_RELEASE@
-#define HAVE_LOG4CXX @LOG4CXX_FOUND@
+#define EAPI_HAVE_LOG4CXX @HAVE_LOG4CXX@
+
+#if defined(WIN32) || defined(_WIN32)
+#  if defined(BUILDING_LIBEAPI)
+#    define EAPI_API  __declspec(dllexport)
+#  else
+#    define EAPI_API  __declspec(dllimport)
+#  endif
+#else
+#  define EAPI_API
+#endif
 
 #define EAPI_DELETE(ptr); if(ptr) {delete ptr; ptr=0;}
 #define NUM_MAX_THREADS 3

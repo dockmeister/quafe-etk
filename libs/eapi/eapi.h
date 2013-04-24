@@ -31,7 +31,7 @@ class Request;
 class BasicAPI;
 
 
-class Main : public Quafe::Singleton<Main> {
+class EAPI_API Main : public Quafe::Singleton<Main> {
 	friend class Quafe::Singleton<Main>;
 public:
 	//!<

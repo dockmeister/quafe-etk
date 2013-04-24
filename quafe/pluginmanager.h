@@ -8,6 +8,8 @@
 #ifndef PLUGINMANAGER_H_
 #define PLUGINMANAGER_H_
 
+#include <quafe-config.h>
+
 #include "singleton.h"
 #include "plugins/plugininterface.h"
 
@@ -54,10 +56,7 @@ struct PluginInfo {
 
 typedef std::list<PluginInfo> PluginInfoList;
 
-class PluginManager : public Singleton<PluginManager> {
-	friend class Singleton<PluginManager>;
-public:
-	static void init(Glib::ustring &directory);
+class PluginManager {
 public:
 	void open_all();
 	bool open(PluginInfo &info);
@@ -74,7 +73,7 @@ public:
 	bool find(const Glib::ustring id, PluginInterface *&plugin);
 	bool find(const Glib::ustring id, PluginInfo &info);
 
-#ifdef DEBUG_
+#if !QUAFE_BUILD_RELEASE
 	void hard_reset(PluginInfo &info);
 #endif
 
@@ -83,7 +82,7 @@ public:
 public:
 	virtual ~PluginManager();
 protected:
-	PluginManager();
+
 
 	void read_plugin_dir(const Glib::ustring &directory);
 private:

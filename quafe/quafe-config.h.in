@@ -30,7 +30,7 @@
 #define QUAFE_DATADIR "@QUAFE_PREFIX@/share/quafe-etk"
 
 #define QUAFE_BUILD_RELEASE @QUAFE_BUILD_RELEASE@
-#define HAVE_LOG4CXX @LOG4CXX_FOUND@
+#define QUAFE_HAVE_LOG4CXX @HAVE_LOG4CXX@
 
 #define QUAFE_DELETE(ptr); if(ptr) {delete ptr; ptr=0;}
 
@@ -39,21 +39,5 @@
 #else
 #	define _(String) String
 #endif
-
-#if HAVE_LOG4CXX
-#	include <log4cxx/logger.h>
-#	define QUAFE_DECLARE_CLASS_LOGGER(domain) private: \
-		::log4cxx::LoggerPtr mClassLogger; \
-		protected: \
-			inline ::log4cxx::LoggerPtr logger() { \
-				if(!mClassLogger) { \
-					mClassLogger = ::log4cxx::Logger::getLogger(domain); \
-				} \
-				return mClassLogger; \
-			} \
-		private:
-#else
-#	define QUAFE_DECLARE_CLASS_LOGGER(domain)
-#endif /* HAVE_LOG4CXX */
 
 #endif /* QUAFE_ETK_H_ */

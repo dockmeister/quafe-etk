@@ -19,7 +19,7 @@
 #include <quafe-config.h>
 #include <quafe-logging.h>
 
-#include "preferences.h"
+#include "settings.h"
 #include "pluginmanager.h"
 #include "application.h"
 
@@ -36,39 +36,4 @@ QUAFE_DECLARE_STATIC_LOGGER("Quafe");
 /*!\brief
  *
  */
-int main(int argc, char **argv) {
-	Gtk::Main kit(argc, argv);
 
-	if (Quafe::Preferences::init(argc, argv)) {
-		return EXIT_SUCCESS;
-	}
-
-	LOG_INFO("Starting quafe-etk. (version: %1, release: %2)", QUAFE_VERSION, QUAFE_BUILD_RELEASE);
-	{
-
-		Glib::ustring directory = Glib::build_filename(Quafe::Preferences::get<Glib::ustring>("data-directory"), "plugins");
-		Quafe::PluginManager::init(directory);
-
-		Glib::ustring eapi_dir = Quafe::Preferences::get<Glib::ustring>("config-directory");
-		if (!EAPI::Main::init(eapi_dir)) {
-			return EXIT_FAILURE;
-		}
-
-		Quafe::Preferences::instance()->parse_account_list();
-	}
-
-	try {
-		Quafe::Application * app = Quafe::Application::instance();
-		app->run();
-	} catch (Quafe::Exception &e) {
-		LOG_FATAL("Exception: %1", e.what());
-		return EXIT_FAILURE;
-	} catch (std::exception &e) {
-		LOG_FATAL("Exception: %1", e.what());
-		return EXIT_FAILURE;
-	}
-
-	Quafe::Preferences::instance()->save_config_file();
-
-	return EXIT_SUCCESS;
-}

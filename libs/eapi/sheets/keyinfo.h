@@ -28,7 +28,7 @@ namespace EAPI {
 /*! TODO: write doc
  *
  */
-class KeyInfo : public SheetList<KeyInfo>, public BasicAPI {
+class EAPI_API KeyInfo : public SheetList<KeyInfo>, public BasicAPI {
 public:
 	//! \brief Represents a character available through this API Key.
 	struct Character {

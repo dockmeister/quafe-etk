@@ -18,7 +18,7 @@ class KeyInfo;
 /*!
  *
  */
-class CharacterSheet: public SheetList<CharacterSheet>, public BasicAPI {
+class EAPI_API CharacterSheet: public SheetList<CharacterSheet>, public BasicAPI {
 public:
 	static CharacterSheet * create(int charcter_id);
 public:

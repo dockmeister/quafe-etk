@@ -31,14 +31,12 @@ namespace Quafe {
 class Exception : public Glib::Exception {
 public:
 	Exception(Glib::ustring s);
-	virtual ~Exception() throw () {
-	}
-	;
+	virtual ~Exception() throw () {};
 
-//virtual
 	virtual Glib::ustring  what() const {
 		return s_what;
 	}
+
 private:
 	Glib::ustring  s_what;
 };

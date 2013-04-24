@@ -8,7 +8,9 @@
 #ifndef EAPI_LOGGING_H_
 #define EAPI_LOGGING_H_
 
-#if HAVE_LOG4CXX
+#include <eapi-config.h>
+
+#if EAPI_HAVE_LOG4CXX
 #	include <log4cxx/logger.h>
 #	include <glibmm/ustring.h>
 #	define EAPI_DECLARE_STATIC_LOGGER(domain) namespace { \

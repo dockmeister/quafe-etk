@@ -19,42 +19,42 @@
 #ifndef _EAPI_EXCEPTION_H_
 #define _EAPI_EXCEPTION_H_
 
+#include <eapi/eapi-config.h>
 #include <typeinfo>
 #include <glibmm/exception.h>
 
 namespace EAPI {
 
-class Exception : public Glib::Exception {
+class EAPI_API Exception : public Glib::Exception {
 public:
-	Exception(const Glib::ustring &error, const Glib::ustring &errno = "");
+	Exception(const Glib::ustring error);
+	Exception(const Glib::ustring error, const Glib::ustring errno);
 	virtual ~Exception() throw();
 
 	virtual Glib::ustring what() const;
 protected:
-	Glib::ustring error_;
-	Glib::ustring errno_;
+	const Glib::ustring error_;
+	const Glib::ustring errno_;
 };
 
-class NotOutdatedException : public Exception {
+class EAPI_API NotOutdatedException : public Exception {
 public:
 	NotOutdatedException();
 };
 
 template<class T>
-class BadValueException : public Exception {
+class EAPI_API BadValueException : public Exception {
 public:
-	BadValueException(const Glib::ustring &val)
-		: Exception("") {
-		error_ = Glib::ustring::compose("Invalid access for value: %1", val);
+	BadValueException(const Glib::ustring val)
+		: Exception(Glib::ustring::compose("Invalid access for value: %1", val)) {
 	}
 };
 
 template<class T>
-class BadValueCastException : public Exception {
+class EAPI_API BadValueCastException : public Exception {
 public:
-	BadValueCastException(const Glib::ustring &index, const T &value)
-		: Exception("") {
-		error_ = Glib::ustring::compose("Invalid cast for value: %1 to %2", index, typeid(T).name());
+	BadValueCastException(const Glib::ustring index, const T value)
+		: Exception(Glib::ustring::compose("Invalid cast for value: %1 to %2", index, typeid(T).name())) {
 	}
 };
 

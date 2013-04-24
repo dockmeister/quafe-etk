@@ -35,16 +35,6 @@ namespace Quafe {
 class PluginInterface;
 class PreferenceDialog;
 
-/*!\brief
- *
- */
-struct AccountInfo {
-	bool active;
-	Glib::ustring authid;
-	Glib::ustring authkey;
-	std::pair<bool, Glib::ustring> characters[3];
-};
-
 typedef std::list<AccountInfo> AccountInfoList;
 
 namespace po = boost::program_options;

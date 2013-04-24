@@ -159,30 +159,6 @@ bool BasicAPI::parse_xml_document() {
 /********************************************************************************************
  * public little helper
  */
-template <>
-const Glib::ustring BasicAPI::value<Glib::ustring>(const Glib::ustring w) const {
-	ValueMap::const_iterator it = m_value_map.find(w);
-
-	if(it == m_value_map.end()) {
-		throw Exception("Value '" + w + "' not found. Check status first!");
-	}
-
-	Glib::ustring val;
-
-	if(it->second.type() == typeid(Glib::ustring)) {
-		val = boost::any_cast<Glib::ustring>(it->second);
-
-	} else if(it->second.type() == typeid(int)) {
-		int any = boost::any_cast<int>(it->second);
-		val = boost::lexical_cast<Glib::ustring>(any);
-
-	} else {
-		throw Exception("Bad any cast: '" +w+ "'");
-	}
-
-	return val;
-}
-
 const Glib::ustring BasicAPI::get_document() {
 	Glib::Mutex::Lock lock(lock_);
 	std::stringstream doc;

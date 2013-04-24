@@ -16,16 +16,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <quafe-logging.h>
-
 #include "application.h"
 
+#include "settings.h"
 #include "pluginmanager.h"
-#include "preferences.h"
 #include "ui/applicationwindow.h"
 #include "plugins/plugininterface.h"
 
+#include <eapi/sheets/keyinfo.h>
+
 #include <boost/bind.hpp>
 #include <gtkmm/main.h>
+#include <gtkmm-3.0/gtkmm/main.h>
 #include <glibmm/miscutils.h>
 
 QUAFE_DECLARE_STATIC_LOGGER("Quafe");
@@ -37,11 +39,9 @@ namespace Quafe {
 Application::Application() :
 		running(false), m_plugin_current(0) {
 
-	Glib::ustring data_dir = Preferences::get<Glib::ustring>("data-directory");
-
+	Settings settings;
 	//[ Using glade to create main window and connecting signals
-	Glib::ustring glade_file = Glib::build_filename(data_dir, "ui", "applicationwindow.glade");
-	Glib::RefPtr<Gtk::Builder> refBuilder = Gtk::Builder::create_from_file(glade_file);
+	Glib::RefPtr<Gtk::Builder> refBuilder = Gtk::Builder::create_from_file(settings.get_glade_directory("applicationwindow.glade"));
 
 	refBuilder->get_widget_derived("ApplicationWindow", app_window);
 
@@ -56,7 +56,8 @@ Application::Application() :
 	Preferences::instance()->create_dialog(*app_window);
 
 	//[ add valid plugins to gui (active or not)
-	PluginInfoList p_list = PluginManager::instance()->get_plugin_list();
+	mPluginManager = new PluginManager();
+	PluginInfoList p_list = mPluginManager->get_plugin_list();
 	PluginInfoList::iterator it = p_list.begin();
 
 	for (; it != p_list.end(); ++it) {
@@ -98,31 +99,31 @@ void Application::quit() {
 // Plugin methods
 bool Application::on_plugin_enabled(const Glib::ustring &id) {
 	PluginInfo info;
-	if (!PluginManager::instance()->find(id, info)) {
+	if (!mPluginManager->find(id, info)) {
 		LOG_ERROR("Unable to find plugin '%1'.", id);
 		return false;
 	}
 
-	PluginManager::instance()->destroy(info);
+	mPluginManager->destroy(info);
 
 	return true;
 }
 
 bool Application::on_plugin_disabled(const Glib::ustring &id) {
 	PluginInfo info;
-	if (!PluginManager::instance()->find(id, info)) {
+	if (!mPluginManager->find(id, info)) {
 		LOG_ERROR("Unable to find plugin '%1'.", id);
 		return false;
 	}
 
-	PluginManager::instance()->create(info);
+	mPluginManager->create(info);
 
 	return true;
 }
 
 bool Application::on_plugin_activated(const Glib::ustring &id) {
 	PluginInterface *plugin = 0;
-	if (!PluginManager::instance()->find(id, plugin)) {
+	if (!mPluginManager->find(id, plugin)) {
 		LOG_ERROR("Unknown plugin '%1' requested.", id);
 		return false;
 	}
@@ -134,7 +135,7 @@ bool Application::on_plugin_activated(const Glib::ustring &id) {
 
 bool Application::on_plugin_deactivated(const Glib::ustring &id) {
 	PluginInterface *plugin = 0;
-	if (!PluginManager::instance()->find(id, plugin)) {
+	if (!mPluginManager->find(id, plugin)) {
 		LOG_ERROR("Unknown plugin '%1' requested.", id);
 		return false;
 	}
@@ -150,4 +151,64 @@ bool Application::on_plugin_deactivated(const Glib::ustring &id) {
 const ApplicationWindow * Application::get_window() {
 	return app_window;
 }
+}
+
+
+/**********************************************************************************************
+ *
+ */
+int main(int argc, char **argv) {
+	using namespace Quafe;
+
+	Gtk::Main kit(argc, argv);
+
+	Settings settings(argc, argv);
+	if(settings.process_command_line()) {
+		return EXIT_SUCCESS;
+	}
+
+	LOG_INFO("Starting quafe-etk. (version: %1, release: %2)", QUAFE_VERSION, QUAFE_BUILD_RELEASE);
+	{
+		if (!EAPI::Main::init(settings.get_eapi_directory())) {
+			return EXIT_FAILURE;
+		}
+
+		AccountInfo::List ac_list = settings.get_account_list();
+		for(AccountInfo::const_iterator it = ac_list.begin(); it != ac_list.end(); it++) {
+			const AccountInfo &ac_info = *it;
+
+			if(ac_info.active == false) {
+				continue;
+			}
+
+			EAPI::KeyInfo *key = 0;
+			try {
+				key = EAPI::KeyInfo::create(ac_info.authid, ac_info.authkey);
+
+			} catch(EAPI::Exception &e) {
+				LOG_WARN("Failed to add KeyInfo: ", e.what());
+				continue;
+			}
+
+			for(CharacterInfo::const_iterator it = ac_info.characters.begin(); it != ac_info.characters.end(); it++) {
+				const CharacterInfo &c_info = *it;
+				key->set_character_active(c_info.id, c_info.active);
+			}
+		}
+	}
+
+	try {
+		Quafe::Application * app = Quafe::Application::instance();
+		app->run();
+	} catch (Quafe::Exception &e) {
+		LOG_FATAL("Exception: %1", e.what());
+		return EXIT_FAILURE;
+	} catch (std::exception &e) {
+		LOG_FATAL("Exception: %1", e.what());
+		return EXIT_FAILURE;
+	}
+
+	Quafe::Preferences::instance()->save_config_file();
+
+	return EXIT_SUCCESS;
 }

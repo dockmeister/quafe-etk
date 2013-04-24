@@ -36,7 +36,7 @@ class BasicAPI;
 /*! \brief
  *
  */
-class Request : private boost::noncopyable {
+class EAPI_API Request : private boost::noncopyable {
 public:
 	//! Curl write function. Writes result into a stringstream
 	static size_t write_to_stream(void *contents, size_t size, size_t nmemb, std::stringstream *str);

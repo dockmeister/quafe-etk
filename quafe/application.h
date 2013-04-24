@@ -33,6 +33,7 @@ namespace Quafe {
 // forward decl to minimize dependencies
 class PluginInterface;
 class ApplicationWindow;
+class PluginManager;
 
 /*! \brief Main application class.
  * 		Handles plugins, creates the window and finally runs the application.
@@ -61,8 +62,9 @@ private:
 	Application();
 	virtual ~Application();
 
-	gboolean running;
+	bool running;
 	PluginInterface *m_plugin_current; //!< current activated plugin
+	PluginManager *mPluginManager;
 };
 
 }

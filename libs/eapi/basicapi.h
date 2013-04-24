@@ -35,7 +35,7 @@
 
 namespace EAPI {
 
-class BasicAPI: public boost::noncopyable {
+class EAPI_API BasicAPI: public boost::noncopyable {
 	friend class Request;
 	friend class Main;
 public:

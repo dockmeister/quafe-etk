@@ -8,8 +8,7 @@
 #ifndef QUAFE_LOGGING_H_
 #define QUAFE_LOGGING_H_
 
-#define HAVE_LOG4CXX 1
-#if HAVE_LOG4CXX
+#if QUAFE_HAVE_LOG4CXX
 #	include <log4cxx/logger.h>
 #	include <glibmm/ustring.h>
 #	define QUAFE_DECLARE_STATIC_LOGGER(domain) namespace { \

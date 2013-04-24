@@ -32,7 +32,7 @@ namespace EAPI {
  *
  */
 template<class API>
-class SheetList {
+class EAPI_API SheetList {
 public:
 	typedef typename std::list<API *> List;
 	typedef typename std::list<API *>::iterator iterator;

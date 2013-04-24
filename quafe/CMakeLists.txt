@@ -30,9 +30,10 @@ INCLUDE_DIRECTORIES (
 )
 
 ADD_EXECUTABLE (quafe-etk 
-	main.cc 
-	application.cc 
-	preferences.cc 
+	application.cc
+	settings.cc 
+
+#	preferences.cc 
 	pluginmanager.cc
 	
 	# Ui stuff
