@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+_Name=Quafe - Eve tool kit
+_Comment=Use Quafe-ETK to manage your Eve Online characters. Skill training, Assets, Wallet journal and more...
+Exec=/usr/local/bin/quafe-etk
+Icon=/usr/local/share/quafe-etk/images/quafe-bin.png
+Terminal=false
+Type=Application
+Categories=GNOME;GTK;Games
+StartupNotify=true
+Name[de_DE]=quafe-etk.desktop
