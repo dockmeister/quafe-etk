@@ -19,6 +19,8 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+#include <stdint.h>
+
 namespace EAPI {
 
 enum CacheStyle {
@@ -45,6 +47,12 @@ enum AccessMask {
 	CAK_SKILLQUEUE = 1 << 1
 };
 
+struct Event {
+	const uint32_t sheet_type;
+	const uint8_t result;
+	const uint8_t status;
+
+};
 }
 
 #endif /* TYPES_H_ */

@@ -8,7 +8,7 @@
 #ifndef EAPI_LOGGING_H_
 #define EAPI_LOGGING_H_
 
-#include <eapi-config.h>
+#include <eapi/eapi-config.h>
 
 #if EAPI_HAVE_LOG4CXX
 #	include <log4cxx/logger.h>

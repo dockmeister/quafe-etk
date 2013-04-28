@@ -8,6 +8,7 @@
 #ifndef QUAFE_LOGGING_H_
 #define QUAFE_LOGGING_H_
 
+#include <quafe-config.h>
 #if QUAFE_HAVE_LOG4CXX
 #	include <log4cxx/logger.h>
 #	include <glibmm/ustring.h>

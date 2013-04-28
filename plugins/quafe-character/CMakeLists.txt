@@ -9,7 +9,7 @@ CONFIGURE_FILE (skilltraining-config.h.in skilltraining-config.h)
 
 INCLUDE_DIRECTORIES (
 	${QUAFE_INCLUDE_DIR}
-	${QUAFE_LIBS_INCLUDE}
+	${EAPI_INCLUDE_DIRS}
 	${GTKMM_INCLUDE_DIRS} 
 	${Boost_INCLUDE_DIR}
 )

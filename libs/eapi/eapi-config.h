@@ -25,10 +25,10 @@
 #define EAPI_VERSION_MINOR 1
 #define EAPI_VERSION_PATCH 0+devel
 #define EAPI_VERSION "0.1.0+devel"
-#define EAPI_PREFIX "C:/Program Files (x86)/Project"
+#define EAPI_PREFIX "/usr/local"
 
 #define EAPI_BUILD_RELEASE 0
-#define EAPI_HAVE_LOG4CXX 0
+#define EAPI_HAVE_LOG4CXX 1
 
 #if defined(WIN32) || defined(_WIN32)
 #  if defined(BUILDING_LIBEAPI)

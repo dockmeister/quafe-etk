@@ -14,13 +14,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <quafe-config.h>
-
+#include <quafe-logging.h>
 #include "applicationwindow.h"
 
 #include "pluginbar.h"
+#include "../settings.h"
 
-#include "../preferences.h"
 #include <boost/bind.hpp>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
@@ -35,16 +34,16 @@ namespace Quafe {
 ApplicationWindow::ApplicationWindow(BaseObjectType *cobject, Glib::RefPtr<Gtk::Builder> refBuilder)
 	: Gtk::Window(cobject), m_refBuilder(refBuilder), maximized(false) {
 
-	data_dir = Preferences::get<Glib::ustring>("data-directory");
+	Settings settings;
 
 	//[ apply additional window options
-	set_icon_from_file(Glib::build_filename(data_dir, "images", "quafe.png"));
+	set_icon_from_file(settings.get_media_directory("quafe.png"));
 
-	if (Preferences::get<bool>("maximized") == true) {
+	if (settings.get_boolean("maximized", false)) {
 		maximize();
 		maximized = true;
 	} else {
-		resize(Preferences::get<int>("size-width"), Preferences::get<int>("size-height"));
+		resize(settings.get_integer("size-width", 1024), settings.get_integer("size-height", 768));
 	}
 	//]
 

@@ -7,7 +7,7 @@
 
 #include "pluginbase.h"
 
-#include <preferences.h>
+#include <settings.h>
 #include <utils/exception.h>
 
 #include <glibmm/miscutils.h>
@@ -26,8 +26,7 @@ PluginBase::~PluginBase() {
 }
 
 void PluginBase::init_glade(const Glib::ustring glade_filename) {
-	Glib::ustring data_dir = Preferences::get<Glib::ustring>("data-directory");
-	Glib::ustring glade_file = Glib::build_filename(data_dir, "ui", glade_filename);
+	Glib::ustring glade_file = Settings().get_glade_directory(glade_filename);
 
 	if (!Glib::file_test(glade_file, Glib::FILE_TEST_EXISTS)) {
 		throw Exception("Could not locate Gladefile: " + glade_file);
@@ -46,7 +45,7 @@ PluginBase::ConnectionHandler::~ConnectionHandler() {
 	disconnect_all();
 }
 
-void PluginBase::ConnectionHandler::operator +=(boost::signals2::connection &conn) {
+void PluginBase::ConnectionHandler::operator +=(boost::signals2::connection conn) {
 	m_connections.push_back(conn);
 }
 

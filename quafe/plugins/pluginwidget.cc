@@ -4,7 +4,7 @@
  *  Created on: 17.02.2013
  *      Author: cn
  */
-#include <quafe-config.h>
+#include <quafe-logging.h>
 
 #include "pluginwidget.h"
 
@@ -17,7 +17,7 @@ PluginWidget::PluginWidget() {
 
 }
 
-PluginWidget::PluginWidget(Glib::RefPtr<Gtk::Builder> &refGlade)
+PluginWidget::PluginWidget(const Glib::RefPtr<Gtk::Builder> &refGlade)
 	: m_refGlade(refGlade) {
 }
 
@@ -27,7 +27,7 @@ PluginWidget::~PluginWidget() {
 bool PluginWidget::add_label(const Glib::ustring label_name) {
 	LabelMap::iterator it = m_labels.find(label_name);
 	if (it != m_labels.end()) {
-		LOG_WARN("duplicate label name: '" << label_name << "'");
+		LOG_WARN("duplicate label name: '%1'", label_name);
 		return false;
 	}
 
@@ -44,7 +44,7 @@ bool PluginWidget::add_label_from_glade(const Glib::ustring label_name) {
 
 	LabelMap::iterator it = m_labels.find(label_name);
 	if (it != m_labels.end()) {
-		LOG_WARN("duplicate label name: '" << label_name << "'");
+		LOG_WARN("duplicate label name: '%1'", label_name);
 		return false;
 	}
 
@@ -52,7 +52,7 @@ bool PluginWidget::add_label_from_glade(const Glib::ustring label_name) {
 	m_refGlade->get_widget(label_name, label);
 
 	if (!label) {
-		LOG_WARN("failed to find label in glade file: '" << label_name << "'");
+		LOG_WARN("failed to find label in glade file: '%1'.", label_name);
 		return false;
 	}
 

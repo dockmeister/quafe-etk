@@ -5,7 +5,7 @@
  *      Author: cn
  */
 
-#include <quafe-config.h>
+#include <quafe-logging.h>
 
 #include "pluginbutton.h"
 
@@ -13,7 +13,7 @@
 #include <gtkmm/image.h>
 #include <gtkmm/box.h>
 
-QUAFE_DECLARE_STATIC_LOGGER("EAPI.Ui");
+QUAFE_DECLARE_STATIC_LOGGER("Quafe.Ui");
 
 namespace Quafe {
 
@@ -23,7 +23,7 @@ PluginButton::PluginButton(const Glib::ustring &id, const Glib::ustring &txt_lab
 	set_manage();
 
 	if (!Glib::file_test(img_filepath, Glib::FILE_TEST_EXISTS)) {
-		LOG_WARN("unable to locate plugin image: " << img_filepath);
+		LOG_WARN("unable to locate plugin image: %1",img_filepath);
 	}
 
 	Gtk::Image *img = Gtk::manage(new Gtk::Image(img_filepath));

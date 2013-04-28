@@ -17,6 +17,7 @@
 #include <iostream>
 
 namespace Quafe {
+QUAFE_DECLARE_STATIC_LOGGER("Quafe");
 boost::optional<UstringTranslator::external_type> UstringTranslator::get_value(UstringTranslator::internal_type const &v) {
 	return Glib::ustring(v);
 }
@@ -51,7 +52,7 @@ using namespace boost::property_tree;
 Settings::Settings(int argc, char **argv)
 	: print_version(false), print_help(false) {
 	//[ parsing command line arguments
-	for(uint16_t i = 1; i <= argc; i++) {
+	for(uint16_t i = 1; i < (argc-1); i++) {
 		Glib::ustring arg(argv[i]);
 		if(arg == "-h" || arg == "--help") {
 			print_help = true;
@@ -64,12 +65,12 @@ Settings::Settings(int argc, char **argv)
 		}
 
 		if(arg.find("--data-directory") > 0) {
-			c_data_directory = arg.replace(0, arg.find('='), "");
+			c_data_directory = arg.replace(0, arg.find('=')+1, "");
 			LOG_DEBUG("--data-directory found. value: %1", c_data_directory);
 		}
 
 		if(arg.find("--config-directory") > 0) {
-			c_config_directory = arg.replace(0, arg.find('='), "");
+			c_config_directory = arg.replace(0, arg.find('=')+1, "");
 			LOG_DEBUG("--config-directory found. value: %1", c_config_directory);
 		}
 	}
@@ -115,6 +116,7 @@ Settings::Settings(int argc, char **argv)
 			&& Glib::file_test(Glib::build_filename(*it, "ui", "applicationwindow.glade"), Glib::FILE_TEST_EXISTS)) {
 
 			c_data_directory = *it;
+			break;
 		}
 	}
 
@@ -162,7 +164,7 @@ void Settings::load(const Glib::ustring filename) {
 	}
 
 	const ptree &ac = pt.get_child("accounts");
-	for(ptree::const_iterator it = pl.begin(); it != pl.end(); it++) {
+	for(ptree::const_iterator it = ac.begin(); it != ac.end(); it++) {
 		const ptree::value_type &v = *it;
 		AccountInfo ainfo;
 		if(ainfo.load(v.second)) {
@@ -198,8 +200,12 @@ Glib::ustring Settings::get_string(const Glib::ustring path, const Glib::ustring
 	return get<Glib::ustring>(path, default_value);
 }
 
-bool Settings::get_boolean(const Glib::ustring path, bool default_value) {
+bool Settings::get_boolean(const Glib::ustring path, const bool default_value) {
 	return get<bool>(path, default_value);
+}
+
+int32_t Settings::get_integer(const Glib::ustring path, const int32_t default_value) {
+	return get<int32_t>(path, default_value);
 }
 
 /****************************************************************************************************
@@ -211,6 +217,7 @@ bool PluginInfo::load(const ptree &pt) {
 		id = pt.get<Glib::ustring>("id");
 		title = pt.get<Glib::ustring>("title");
 		icon = pt.get<Glib::ustring>("icon");
+		found = false;
 	} catch(ptree_error &e) {
 		LOG_WARN("Malformed config file. Unable to load plugin info.");
 		return false;

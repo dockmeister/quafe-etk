@@ -27,7 +27,6 @@
 #include <eapi/sheets/charactersheet.h>
 
 namespace Quafe {
-namespace Plugin {
 
 PluginParams params = {
 		"skilltraining",
@@ -57,18 +56,18 @@ SkillTraining::SkillTraining(const PluginParams &params)
 
 	m_sig_connections += EAPI::CharacterSheet::signal_sheet_added(boost::bind(&SkillTraining::on_charactersheet_added, this, _1));
 	m_sig_connections += EAPI::CharacterSheet::signal_sheet_removed(boost::bind(&SkillTraining::on_charactersheet_removed, this, _1));
-	m_sig_connections += EAPI::CharacterSheet::signal_sheet_updated(boost::bind(&SkillTraining::on_charactersheet_updated, this, _1));
+	//m_sig_connections += EAPI::CharacterSheet::signal_sheet_updated(boost::bind(&SkillTraining::on_charactersheet_updated, this, _1));
 }
 
 SkillTraining::~SkillTraining() {
 }
 
-bool SkillTraining::close() const {
+bool SkillTraining::close() {
 	m_sig_connections.block_all();
 	return true;
 }
 
-Gtk::Widget& SkillTraining::show() const {
+Gtk::Widget& SkillTraining::show() {
 	m_sig_connections.unblock_all();
 	return *m_notebook;
 }
@@ -78,8 +77,8 @@ void SkillTraining::hide() {
 }
 
 void SkillTraining::on_charactersheet_added(EAPI::CharacterSheet *sheet) {
-	gint cid = sheet["id"];
-	Glib::ustring cname = sheet["Character"];
+	gint cid = sheet->value<gint>("id");
+	Glib::ustring cname = sheet->value<Glib::ustring>("Character");
 	CharacterPage *page = m_notebook->add_character_page(cid, cname);
 
 
@@ -91,9 +90,8 @@ void SkillTraining::on_charactersheet_removed(EAPI::CharacterSheet *sheet) {
 }
 
 void SkillTraining::update_character_page(EAPI::CharacterSheet *sheet, CharacterPage *page) {
-	page->set_name(sheet["CharacterName"]);
+	page->set_name(sheet->value<Glib::ustring>("CharacterName"));
 
 }
 
-}
 }

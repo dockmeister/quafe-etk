@@ -26,14 +26,6 @@
 #define QUAFE_SKILLTRAINING_VERSION_PATCH @quafe_skilltraining_VERSION_PATCH@
 #define QUAFE_SKILLTRAINING_VERSION "@quafe_skilltraining_VERSION_MAJOR@.@quafe_skilltraining_VERSION_MINOR@.@quafe_skilltraining_VERSION_PATCH@"
 
-#include <utility.h>
-#define LOG(level) Log().print(level, "EAPI")
-
-#define CMAKE_BUILD_TYPE @CMAKE_BUILD_TYPE@
-#if CMAKE_BUILD_TYPE == Debug
-# 	define DLOG() Log().print(L_DEBUG, "EAPI")
-#else
-#	define DLOG()
-#endif
+#include <quafe-config.h>
 
 #endif /* QUAFE_SKILLTRAINING_CONFIG_H_ */

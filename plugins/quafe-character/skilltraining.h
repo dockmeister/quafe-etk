@@ -30,9 +30,10 @@ class KeyInfo;
 class CharacterSheet;
 class SkillQueue;
 }
-namespace Quafe {
 
-namespace Plugin {
+namespace Quafe {
+class CharacterPage;
+class CharacterNotebook;
 
 /*!\brief
  *
@@ -42,24 +43,23 @@ public:
 	SkillTraining(const PluginParams &params);
 	virtual ~SkillTraining();
 
-	bool close() const;
-	Gtk::Widget& show() const;
+	bool close();
+	Gtk::Widget& show();
 	void hide();
 
-	void on_keyinfo_added(EAPI::KeyInfo *key);
-	void on_keyinfo_removed(EAPI::KeyInfo *key);
+	//void on_keyinfo_added(EAPI::KeyInfo *key);
+	//void on_keyinfo_removed(EAPI::KeyInfo *key);
 	void on_charactersheet_added(EAPI::CharacterSheet *sheet);
 	void on_charactersheet_removed(EAPI::CharacterSheet *sheet);
-	void on_charactersheet_updated(EAPI::CharacterSheet *sheet);
-	void on_skillqueue_updated(EAPI::SkillQueue *queue);
+	//void on_charactersheet_updated(EAPI::CharacterSheet *sheet);
+	//void on_skillqueue_updated(EAPI::SkillQueue *queue);
 
 protected:
 	void update_character_page(EAPI::CharacterSheet *sheet, CharacterPage *page);
 private:
-	Gtk::Notebook *m_notebook;
+	CharacterNotebook *m_notebook;
 };
 
-}
 }
 
 #endif

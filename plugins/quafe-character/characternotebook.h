@@ -10,16 +10,17 @@
 
 #include "characterpage.h"
 
+#include <plugins/pluginwidget.h>
+
 #include <map>
 #include <gtkmm/notebook.h>
 
 
 namespace Quafe {
-	namespace Plugin {
 
 class CharacterNotebook : public PluginWidget, public Gtk::Notebook {
 public:
-	CharacterNotebook();
+	CharacterNotebook(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& refGlade);
 	virtual ~CharacterNotebook();
 
 	CharacterPage* add_character_page(gint id, const Glib::ustring &tab_label);
@@ -30,6 +31,5 @@ private:
 	std::map<gint, CharacterPage *> m_cpage_list;
 };
 
-	}
 } /* namespace Quafe */
 #endif /* CHARACTERNOTEBOOK_H_ */
