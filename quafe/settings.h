@@ -25,10 +25,13 @@ struct PluginInfo {
 	typedef std::vector<PluginInfo>::iterator iterator;
 	typedef std::vector<PluginInfo>::const_iterator const_iterator;
 
+	bool autoload;
 	Glib::ustring  file;
 	Glib::ustring  id;
 	Glib::ustring  title;
 	Glib::ustring  icon;
+
+	bool found;
 
 	bool load(const boost::property_tree::ptree &pt);
 	bool save(boost::property_tree::ptree &pt) const;
@@ -116,8 +119,12 @@ public:
 
 	//TODO: use #if HAVE_LOG4CXX to remove this
 	//! returns the directory where the log file should be stored
-	inline Glib::ustring get_log_directory() const {
-		return Glib::build_filename(c_config_directory, "logs");
+	inline Glib::ustring get_log_directory(const Glib::ustring filename) const {
+		if(filename.empty()) {
+			return Glib::build_filename(c_config_directory, "logs");
+		} else {
+			return Glib::build_filename(c_config_directory, "logs", filename);
+		}
 	}
 
 	//! returns the working directory for libeapi
@@ -145,8 +152,12 @@ public:
 	}
 
 	//! returns the directory containing the image files
-	inline Glib::ustring get_media_directory() const {
-		return Glib::build_filename(c_data_directory, "media");
+	inline Glib::ustring get_media_directory(const Glib::ustring filename = "") const {
+		if(filename.empty()) {
+			return Glib::build_filename(c_data_directory, "media");
+		} else {
+			return Glib::build_filename(c_data_directory, "media", filename);
+		}
 	}
 
 protected:

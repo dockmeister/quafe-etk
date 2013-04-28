@@ -20,6 +20,8 @@
 #ifndef PLUGINBAR_H
 #define	PLUGINBAR_H
 
+#include <quafe-config.h>
+
 #include "pluginbutton.h"
 
 #include <map>

@@ -13,82 +13,41 @@
 #include "singleton.h"
 #include "plugins/plugininterface.h"
 
-#define DEBUG_ 1
+#include <boost/noncopyable.hpp>
 
 namespace Quafe {
 
-/*! \brief PluginInfo struct.
- * 		Plugin information are stored in a PluginContainer.
- * 		Use the function pointer 'create' and 'destroy' to handle the plugin.
- * 		'plugin_id' should be a unique string to identify the plugin.
- */
-struct PluginInfo {
-	void* dlhandle;
-	Quafe::create_t *create; /*!< */
-	Quafe::destroy_t *destroy;
-	Quafe::PluginInterface *ptr;
+class PluginManager : boost::noncopyable {
+private:
+	struct PluginHandle;
+	typedef std::vector<PluginHandle*> PluginHandleList;
 
-	bool active;
-	bool found;
-
-	Glib::ustring  file;
-	Glib::ustring  id;
-	Glib::ustring  title;
-	Glib::ustring  icon;
-
-	bool validate() {
-		if(id == "" || title == "" || icon == "")
-			return false;
-
-		return true;
-	}
-
-	PluginInfo() {
-		ptr = 0;
-		create = 0;
-		dlhandle = 0;
-		destroy = 0;
-		create = 0;
-		found = false;
-		active = false;
-	}
-};
-
-typedef std::list<PluginInfo> PluginInfoList;
-
-class PluginManager {
 public:
+	PluginManager();
+	virtual ~PluginManager();
+
 	void open_all();
-	bool open(PluginInfo &info);
+	bool open(const Glib::ustring &id);
 
 	void close_all();
-	bool close(PluginInfo &info);
+	bool close(const Glib::ustring &id);
 
-	void create_all();
-	bool create(PluginInfo &info);
-
-	void destroy_all();
-	void destroy(PluginInfo &info);
 
 	bool find(const Glib::ustring id, PluginInterface *&plugin);
-	bool find(const Glib::ustring id, PluginInfo &info);
 
 #if !QUAFE_BUILD_RELEASE
-	void hard_reset(PluginInfo &info);
+//	void hard_reset(PluginInfo &info);
 #endif
 
-public:
-	PluginInfoList & get_plugin_list();
-public:
-	virtual ~PluginManager();
 protected:
-
-
-	void read_plugin_dir(const Glib::ustring &directory);
+	bool open(PluginHandle *info);
+	bool close(PluginHandle *info);
+	bool find(const Glib::ustring id, PluginHandle *&hdl);
+	void read_plugin_dir();
 private:
-	PluginInfoList m_plugin_list;
-Glib::ustring  m_plugin_path;
+	PluginHandleList m_plugin_handles;
 
+	Glib::ustring m_plugin_path;
 };
 
 }

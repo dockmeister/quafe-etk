@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 SET (CMAKE_BUILD_TYPE Debug CACHE STRING "default to debug" FORCE)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -fmessage-length=0")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fmessage-length=0")
 SET (CMAKE_CXX_FLAGS_DEBUG "-O1 -g")
 SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -26,9 +26,9 @@ pkg_check_modules(CURL REQUIRED libcurl)
 # optional packages
 SET (HAVE_LOG4CXX 0)
 pkg_check_modules(LOG4CXX liblog4cxx)
-IF (EXISTS ${LOG4CXX_FOUND})
+IF (${LOG4CXX_FOUND})
     SET (HAVE_LOG4CXX 1)
-ENDIF (EXISTS ${LOG4CXX_FOUND})
+ENDIF (${LOG4CXX_FOUND})
 
 FIND_PACKAGE (Doxygen)
 
@@ -62,6 +62,28 @@ IF (UNIX)
 	)
 	#ADD_DEPENDENCIES (eapi check_config_includes)
 	#ADD_DEPENDENCIES (quafe-etk check_config_includes)
+
+  ADD_CUSTOM_TARGET (distclean @echo cleaning for source distribution)
+  SET(DISTCLEANED
+   cmake.depends
+   cmake.check_depends
+   CMakeCache.txt
+   cmake.check_cache
+   CMakeFiles
+   *.cmake
+   Makefile
+   *~
+   install_manifest.txt
+   doxyfile
+  )
+  
+  ADD_CUSTOM_COMMAND(
+    DEPENDS clean
+    COMMENT "distribution clean"
+    COMMAND rm
+    ARGS    -Rf CMakeTmp ${DISTCLEANED}
+    TARGET  distclean
+  )
 ENDIF (UNIX)
 
 ## doxygen support

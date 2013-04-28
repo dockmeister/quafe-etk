@@ -40,4 +40,6 @@
 #	define _(String) String
 #endif
 
+#include <stdint.h>
+
 #endif /* QUAFE_ETK_H_ */

@@ -26,7 +26,7 @@ protected:
 	public:
 		~ConnectionHandler();
 		//!< adds a connection
-		void operator +=(boost::signals2::connection &connection);
+		void operator +=(boost::signals2::connection connection);
 
 		//!< blocks all connections. use this if the plugin is not active
 		void block_all();

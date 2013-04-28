@@ -18,6 +18,8 @@
 #ifndef APPLICATIONWINDOW_H_
 #define APPLICATIONWINDOW_H_
 
+#include <quafe-config.h>
+
 #include "pluginbar.h"
 
 #include <boost/signals2.hpp>
@@ -98,7 +100,6 @@ private:
 
 	signal_plugin_toggle_t m_signal_plugin_enabled, m_signal_plugin_disabled;
 
-	Glib::ustring data_dir;
 	bool maximized;
 
 };

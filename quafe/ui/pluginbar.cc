@@ -17,10 +17,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <quafe-config.h>
+#include <quafe-logging.h>
 
 #include "pluginbar.h"
-#include "preferences.h"
+#include "../settings.h"
 
 #include <boost/bind.hpp>
 #include <giomm/file.h>
@@ -56,7 +56,8 @@ Pluginbar::Pluginbar(BaseObjectType *cobject, Glib::RefPtr<Gtk::Builder> refBuil
 	set_shadow_type(Gtk::SHADOW_ETCHED_OUT);
 
 	//[ load pluginbutton / eventbox styles
-	Glib::ustring css_file = Glib::build_filename(Preferences::get<Glib::ustring>("data-directory"), "ui", "pluginbutton.css");
+	Settings settings;
+	Glib::ustring css_file = settings.get_glade_directory("pluginbutton.css");
 	if(Glib::file_test(css_file, Glib::FILE_TEST_EXISTS)) {
 		Glib::RefPtr<Gio::FileInputStream> stream = Gio::File::create_for_path(css_file)->read();
 		goffset size = stream->query_info()->get_size();

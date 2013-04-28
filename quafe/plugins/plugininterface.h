@@ -49,9 +49,9 @@ public:
 			delete m_plugin_widget;
 	};
 
-	virtual Gtk::Widget & show() const = 0;
+	virtual Gtk::Widget & show() = 0;
 	virtual void hide() = 0;
-	virtual bool close() const = 0;
+	virtual bool close() = 0;
 
 	virtual inline const Glib::ustring& get_id() const {
 		return params.id;

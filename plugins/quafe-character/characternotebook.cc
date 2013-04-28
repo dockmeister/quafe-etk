@@ -8,9 +8,9 @@
 #include "characternotebook.h"
 
 namespace Quafe {
-	namespace Plugin {
 
-CharacterNotebook::CharacterNotebook() {
+CharacterNotebook::CharacterNotebook(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& refGlade)
+	: PluginWidget(refGlade), Gtk::Notebook(cobject)  {
 	append_page(*Gtk::manage(new Gtk::Label("test")), "A Page", false);
 }
 
@@ -24,7 +24,7 @@ CharacterPage* CharacterNotebook::add_character_page(gint id, const Glib::ustrin
 	if(find_character_page(id, page)) {
 		return page;
 	} else {
-		page = new CharacterPage();
+		m_refGlade->get_widget_derived("CharacterPage", page);
 		m_cpage_list[id] = page;
 	}
 
@@ -43,5 +43,4 @@ bool CharacterNotebook::find_character_page(gint id, CharacterPage *&page) {
 	page = it->second;
 	return true;
 }
-	}
 } /* namespace Quafe */

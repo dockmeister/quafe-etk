@@ -14,7 +14,6 @@
 #include <gtkmm/label.h>
 
 namespace Quafe {
-	namespace Plugin {
 
 class CharacterPage : public PluginWidget, public Gtk::Paned {
 public:
@@ -24,6 +23,5 @@ public:
 private:
 };
 
-	}
 }
 #endif /* CHARACTERPAGE_H_ssssss */

@@ -53,8 +53,6 @@ protected:
 	void quit();
 	ApplicationWindow *app_window;
 
-	bool on_plugin_enabled(const Glib::ustring &id);
-	bool on_plugin_disabled(const Glib::ustring &id);
 	bool on_plugin_activated(const Glib::ustring &id);
 	bool on_plugin_deactivated(const Glib::ustring &id);
 

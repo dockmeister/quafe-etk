@@ -8,7 +8,6 @@
 #include "characterpage.h"
 
 namespace Quafe {
-	namespace Plugin {
 
 CharacterPage::CharacterPage(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& refGlade)
 	: Gtk::Paned(cobject) {
@@ -31,6 +30,5 @@ CharacterPage::CharacterPage(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Bu
 
 CharacterPage::~CharacterPage() {
 }
-	}
 }
 

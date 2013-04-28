@@ -18,11 +18,13 @@
 #include <quafe-logging.h>
 #include "application.h"
 
+#include "utils/exception.h"
 #include "settings.h"
 #include "pluginmanager.h"
 #include "ui/applicationwindow.h"
 #include "plugins/plugininterface.h"
 
+#include <eapi/eapi.h>
 #include <eapi/sheets/keyinfo.h>
 
 #include <boost/bind.hpp>
@@ -36,8 +38,10 @@ namespace Quafe {
 
 // ******************************************************************
 // Application class control
-Application::Application() :
-		running(false), m_plugin_current(0) {
+Application::Application()
+	: running(false), m_plugin_current(0) {
+
+	mPluginManager = new PluginManager();
 
 	Settings settings;
 	//[ Using glade to create main window and connecting signals
@@ -46,34 +50,28 @@ Application::Application() :
 	refBuilder->get_widget_derived("ApplicationWindow", app_window);
 
 	app_window->signal_hide().connect(boost::bind(&Application::quit, this));
-	app_window->signal_plugin_enabled(boost::bind(&Application::on_plugin_enabled, this, _1));
-	app_window->signal_plugin_enabled(boost::bind(&Application::on_plugin_disabled, this, _1));
+	app_window->signal_plugin_enabled(boost::bind(static_cast<bool (PluginManager::*)(const Glib::ustring&)>(&PluginManager::open), mPluginManager, _1));
+	app_window->signal_plugin_disabled(boost::bind(static_cast<bool (PluginManager::*)(const Glib::ustring&)>(&PluginManager::close), mPluginManager, _1));
 	app_window->signal_plugin_activated(boost::bind(&Application::on_plugin_activated, this, _1));
 	app_window->signal_plugin_deactivated(boost::bind(&Application::on_plugin_deactivated, this, _1));
 
 	//]
 
-	Preferences::instance()->create_dialog(*app_window);
+	//Preferences::instance()->create_dialog(*app_window);
 
-	//[ add valid plugins to gui (active or not)
-	mPluginManager = new PluginManager();
-	PluginInfoList p_list = mPluginManager->get_plugin_list();
-	PluginInfoList::iterator it = p_list.begin();
+	//[ open plugins and add valid plugins to gui (active or not)
+	mPluginManager->open_all();
 
-	for (; it != p_list.end(); ++it) {
-		PluginInfo info = *it;
-		if (!info.validate())
-			continue;
-
-		Glib::ustring icon_path = Glib::build_filename(Preferences::get<Glib::ustring>("data-directory"), "images", info.icon);
-		app_window->add_plugin(info.id, info.title, icon_path, info.active);
+	PluginInfo::List p_list = settings.get_plugin_list();
+	for (PluginInfo::const_iterator it = p_list.begin(); it != p_list.end(); ++it) {
+		app_window->add_plugin((*it).id, (*it).title, (*it).icon, (*it).autoload);
 	}
 	//]
 }
 
 Application::~Application() {
 	m_plugin_current = 0;
-
+	QUAFE_DELETE(mPluginManager);
 	QUAFE_DELETE(app_window);
 }
 
@@ -97,30 +95,6 @@ void Application::quit() {
 
 // *******************************************************************
 // Plugin methods
-bool Application::on_plugin_enabled(const Glib::ustring &id) {
-	PluginInfo info;
-	if (!mPluginManager->find(id, info)) {
-		LOG_ERROR("Unable to find plugin '%1'.", id);
-		return false;
-	}
-
-	mPluginManager->destroy(info);
-
-	return true;
-}
-
-bool Application::on_plugin_disabled(const Glib::ustring &id) {
-	PluginInfo info;
-	if (!mPluginManager->find(id, info)) {
-		LOG_ERROR("Unable to find plugin '%1'.", id);
-		return false;
-	}
-
-	mPluginManager->create(info);
-
-	return true;
-}
-
 bool Application::on_plugin_activated(const Glib::ustring &id) {
 	PluginInterface *plugin = 0;
 	if (!mPluginManager->find(id, plugin)) {
@@ -157,15 +131,44 @@ const ApplicationWindow * Application::get_window() {
 /**********************************************************************************************
  *
  */
+
+#if QUAFE_HAVE_LOG4CXX
+#	include <log4cxx/patternlayout.h>
+#	include <log4cxx/fileappender.h>
+#	include <log4cxx/consoleappender.h>
+#endif
+
 int main(int argc, char **argv) {
 	using namespace Quafe;
+	using namespace log4cxx;
 
 	Gtk::Main kit(argc, argv);
+
+#if QUAFE_HAVE_LOG4CXX
+	//[ setup log system
+	PatternLayoutPtr p_layout = new PatternLayout("%r [%-5p] %c - %m%n");
+    ConsoleAppenderPtr c_appender = new ConsoleAppender(p_layout);
+    Logger::getRootLogger()->addAppender(c_appender);
+	//]
+#endif
 
 	Settings settings(argc, argv);
 	if(settings.process_command_line()) {
 		return EXIT_SUCCESS;
 	}
+
+#if QUAFE_HAVE_LOG4CXX
+	Glib::ustring qlog_file = settings.get_log_directory("quafe.log");
+	FileAppenderPtr f_appender = new FileAppender(p_layout, qlog_file.raw());
+	Logger::getLogger("Quafe")->addAppender(f_appender);
+#endif
+
+#if EAPI_HAVE_LOG4CXX
+	Glib::ustring elog_file = settings.get_log_directory("eapi.log");
+	FileAppenderPtr fe_appender = new FileAppender(p_layout, elog_file.raw());
+	Logger::getLogger("EAPI")->addAppender(fe_appender);
+#endif
+
 
 	LOG_INFO("Starting quafe-etk. (version: %1, release: %2)", QUAFE_VERSION, QUAFE_BUILD_RELEASE);
 	{
@@ -208,7 +211,7 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	Quafe::Preferences::instance()->save_config_file();
+	//Quafe::Preferences::instance()->save_config_file();
 
 	return EXIT_SUCCESS;
 }

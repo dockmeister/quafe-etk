@@ -8,6 +8,8 @@ SET (QUAFE_VERSION_PATCH 0+devel)
 SET (QUAFE_PREFIX ${CMAKE_INSTALL_PREFIX})
 SET (QUAFE_BUILD_RELEASE 1)
 
+SET (QUAFE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" PARENT_SCOPE)
+
 IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
   SET (QUAFE_BUILD_RELEASE 0)
 ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -19,6 +21,7 @@ LINK_DIRECTORIES (
     ${GTKMM_LIBRARY_DIRS} 
     ${Boost_LIBRARY_DIR}
     ${EAPI_LIBRARY_DIRS}
+    ${PUGIXML_LIBRARY_DIRS}
 )
 
 INCLUDE_DIRECTORIES (
@@ -29,7 +32,7 @@ INCLUDE_DIRECTORIES (
     ${PUGIXML_INCLUDE_DIRS}
 )
 
-ADD_EXECUTABLE (quafe-etk 
+SET (quafe_etk_SOURCES
 	application.cc
 	settings.cc 
 
@@ -44,21 +47,27 @@ ADD_EXECUTABLE (quafe-etk
 	ui/dialogs.cc
 	
 	# Utilities
-	utils/exception.h
+	utils/exception.cc
 	
 	# Plugins
 	plugins/pluginbase.cc
 	plugins/pluginutils.cc
 	plugins/pluginwidget.cc
-) 
+)
+
+IF (WIN32)
+    ADD_EXECUTABLE (quafe-etk WIN32 ${quafe_etk_SOURCES})
+ELSE (WIN32)
+    ADD_EXECUTABLE (quafe-etk ${quafe_etk_SOURCES})
+ENDIF (WIN32) 
 
 TARGET_LINK_LIBRARIES (quafe-etk 
     ${GTKMM_LIBRARIES} 
     ${Boost_LIBRARIES}
     ${EAPI_LIBRARIES}
     ${PUGIXML_LIBRARIES}
-    curl 
-    boost_program_options
+    ${LOG4CXX_LIBRARIES}
+    dl
 )
 
 INSTALL (TARGETS quafe-etk DESTINATION bin)
