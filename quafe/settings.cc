@@ -78,23 +78,41 @@ Settings::Settings(int argc, char **argv)
 
 	//[ lookup config directory
 	if(c_config_directory.empty()) {
-		c_config_directory = Glib::build_filename(Glib::get_user_config_dir(), Glib::ustring(q_config_subdir));
+		c_config_directory = Glib::build_filename(Glib::get_home_dir(), Glib::ustring(q_config_subdir));
 	}
 
 	if(!Glib::file_test(c_config_directory, Glib::FILE_TEST_EXISTS | Glib::FILE_TEST_IS_DIR)) {
 		LOG_INFO("Configuration directory not found - creating %1", c_config_directory);
 		Glib::RefPtr<Gio::File> cdir = Gio::File::create_for_path(c_config_directory);
-		Glib::RefPtr<Gio::File> ldir = Gio::File::create_for_path(Glib::build_filename(c_config_directory, "logs"));
-		Glib::RefPtr<Gio::File> edir = Gio::File::create_for_path(Glib::build_filename(c_config_directory, "eveapi"));
 
 		try {
 			cdir->make_directory();
-			ldir->make_directory();
-			edir->make_directory();
 		} catch(Glib::Error &e) {
 			LOG_WARN("Failed to create directory '%1': %2", c_config_directory, e.what());
 			LOG_WARN("Using temporary folder. Any settings or changes will be lost. (%1)", Glib::get_tmp_dir());
 			c_config_directory = Glib::get_tmp_dir();
+		}
+	}
+
+#if QUAFE_HAVE_LOG4CXX
+	Glib::ustring log_dir = Glib::build_filename(c_config_directory, "logs");
+	if(!Glib::file_test(log_dir, Glib::FILE_TEST_EXISTS | Glib::FILE_TEST_IS_DIR)) {
+		Glib::RefPtr<Gio::File> cdir = Gio::File::create_for_path(log_dir);
+
+		try {
+			cdir->make_directory();
+		} catch(Glib::Error &e) {
+		}
+	}
+#endif
+
+	Glib::ustring eapi_dir = Glib::build_filename(c_config_directory, "eveapi");
+	if(!Glib::file_test(log_dir, Glib::FILE_TEST_EXISTS | Glib::FILE_TEST_IS_DIR)) {
+		Glib::RefPtr<Gio::File> cdir = Gio::File::create_for_path(eapi_dir);
+
+		try {
+			cdir->make_directory();
+		} catch(Glib::Error &e) {
 		}
 	}
 	//] lookup config directory

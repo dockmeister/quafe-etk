@@ -70,9 +70,12 @@ Application::Application()
 }
 
 Application::~Application() {
+	LOG_DEBUG("Application dtor called");
 	m_plugin_current = 0;
+	if(!app_window->is_managed_()) {
+		QUAFE_DELETE(app_window);
+	}
 	QUAFE_DELETE(mPluginManager);
-	QUAFE_DELETE(app_window);
 }
 
 // *******************************************************************
@@ -152,55 +155,55 @@ int main(int argc, char **argv) {
 	//]
 #endif
 
-	Settings settings(argc, argv);
-	if(settings.process_command_line()) {
-		return EXIT_SUCCESS;
-	}
+    try {
+		Settings settings(argc, argv);
+		if(settings.process_command_line()) {
+			return EXIT_SUCCESS;
+		}
 
 #if QUAFE_HAVE_LOG4CXX
-	Glib::ustring qlog_file = settings.get_log_directory("quafe.log");
-	FileAppenderPtr f_appender = new FileAppender(p_layout, qlog_file.raw());
-	Logger::getLogger("Quafe")->addAppender(f_appender);
+		Glib::ustring qlog_file = settings.get_log_directory("quafe.log");
+		FileAppenderPtr f_appender = new FileAppender(p_layout, qlog_file.raw());
+		Logger::getLogger("Quafe")->addAppender(f_appender);
 #endif
 
 #if EAPI_HAVE_LOG4CXX
-	Glib::ustring elog_file = settings.get_log_directory("eapi.log");
-	FileAppenderPtr fe_appender = new FileAppender(p_layout, elog_file.raw());
-	Logger::getLogger("EAPI")->addAppender(fe_appender);
+		Glib::ustring elog_file = settings.get_log_directory("eapi.log");
+		FileAppenderPtr fe_appender = new FileAppender(p_layout, elog_file.raw());
+		Logger::getLogger("EAPI")->addAppender(fe_appender);
 #endif
 
 
-	LOG_INFO("Starting quafe-etk. (version: %1, release: %2)", QUAFE_VERSION, QUAFE_BUILD_RELEASE);
-	{
-		if (!EAPI::Main::init(settings.get_eapi_directory())) {
-			return EXIT_FAILURE;
+		LOG_INFO("Starting quafe-etk. (version: %1, release: %2)", QUAFE_VERSION, QUAFE_BUILD_RELEASE);
+		{
+			if (!EAPI::Main::init(settings.get_eapi_directory())) {
+				return EXIT_FAILURE;
+			}
+
+			AccountInfo::List ac_list = settings.get_account_list();
+			for(AccountInfo::const_iterator it = ac_list.begin(); it != ac_list.end(); it++) {
+				const AccountInfo &ac_info = *it;
+
+				if(ac_info.active == false) {
+					continue;
+				}
+
+				EAPI::KeyInfo *key = 0;
+				try {
+					key = EAPI::KeyInfo::create(ac_info.authid, ac_info.authkey);
+
+				} catch(EAPI::Exception &e) {
+					LOG_WARN("Failed to add KeyInfo: ", e.what());
+					continue;
+				}
+
+				for(CharacterInfo::const_iterator it = ac_info.characters.begin(); it != ac_info.characters.end(); it++) {
+					const CharacterInfo &c_info = *it;
+					key->set_character_active(c_info.id, c_info.active);
+				}
+			}
 		}
 
-		AccountInfo::List ac_list = settings.get_account_list();
-		for(AccountInfo::const_iterator it = ac_list.begin(); it != ac_list.end(); it++) {
-			const AccountInfo &ac_info = *it;
-
-			if(ac_info.active == false) {
-				continue;
-			}
-
-			EAPI::KeyInfo *key = 0;
-			try {
-				key = EAPI::KeyInfo::create(ac_info.authid, ac_info.authkey);
-
-			} catch(EAPI::Exception &e) {
-				LOG_WARN("Failed to add KeyInfo: ", e.what());
-				continue;
-			}
-
-			for(CharacterInfo::const_iterator it = ac_info.characters.begin(); it != ac_info.characters.end(); it++) {
-				const CharacterInfo &c_info = *it;
-				key->set_character_active(c_info.id, c_info.active);
-			}
-		}
-	}
-
-	try {
 		Quafe::Application * app = Quafe::Application::instance();
 		app->run();
 	} catch (Quafe::Exception &e) {

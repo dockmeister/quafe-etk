@@ -16,11 +16,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SHEETMANAGER_H_
-#define SHEETMANAGER_H_
+#ifndef APIOBJECT_H_
+#define APIOBJECT_H_
 
 #include <eapi/types.h>
-#include <eapi/basicapi.h>
+#include <eapi/apiinterface.h>
 
 #include <list>
 #include <boost/bind.hpp>
@@ -32,43 +32,32 @@ namespace EAPI {
  *
  */
 template<class API>
-class EAPI_API SheetList {
+class EAPI_API APIObject : APIInterface {
+public:
+	struct Event {
+		typedef typename API SheetType;
+		const API *sheet;
+		uint8_t type;
+		uint8_t flags;
+	};
 public:
 	typedef typename std::list<API *> List;
 	typedef typename std::list<API *>::iterator iterator;
 	typedef typename std::list<API *>::const_iterator const_iterator;
-	typedef typename boost::signals2::signal<void(API*)> sheet_signal_t;
-	typedef typename boost::signals2::signal<void(API*)>::slot_type sheet_slot_t;
+	typedef typename boost::signals2::signal<void (const Event&)> sheet_signal_t;
+	typedef typename boost::signals2::signal<void (const Event&)>::slot_type sheet_slot_t;
 	typedef boost::signals2::connection slot_connection_t;
 
 public:
-	virtual ~SheetList() {
+	virtual ~APIObject() {
 	}
 	/*!\brief connects a new slot to signal_sheet_added signal
 	 *
 	 * @param slot
 	 * @return the signal connection object
 	 */
-	static boost::signals2::connection signal_sheet_added(const sheet_slot_t &slot) {
-		return m_signal_sheet_added.connect(slot);
-	}
-
-	/*!\brief connects a new slot to signal_sheet_removed signal
-	 *
-	 * @param slot
-	 * @return the signal connection object
-	 */
-	static boost::signals2::connection signal_sheet_removed(const sheet_slot_t &slot) {
-		return m_signal_sheet_removed.connect(slot);
-	}
-
-	/*!\brief connects a new slot to signal_sheet_updated signal
-	 *
-	 * @param slot
-	 * @return the signal connection object
-	 */
-	static boost::signals2::connection signal_sheet_updated(const sheet_slot_t &slot) {
-		return m_signal_sheet_updated.connect(slot);
+	static boost::signals2::connection signal_event(const sheet_slot_t &slot) {
+		return m_signal_event.connect(slot);
 	}
 
 	/*! \brief Finds a specific sheet by id
@@ -78,7 +67,7 @@ public:
 	 * @return true if a sheet with id was found
 	 */
 	static bool find(const int id, API *&ptr) {
-		return find_if(boost::bind(&BasicAPI::id, _1) == id, ptr);
+		return find_if(boost::bind(&APIInterface::id, _1) == id, ptr);
 	}
 
 	template<typename _Predicate>
@@ -92,8 +81,8 @@ public:
 protected:
 	static API * manage(API *);
 
-	// TODO: bad design 'signal_sheet_updated' should be implemented in BasicAPI
-	static sheet_signal_t m_signal_sheet_updated;
+	virtual void finish(const APIEvent res);
+
 	slot_connection_t sig_connection;
 
 private:
@@ -103,12 +92,8 @@ private:
 	class Destructor {
 	public:
 		~Destructor() {
-			typename List::iterator it = m_sheet_list.begin();
-			for (; it != m_sheet_list.end(); ++it) {
-				if((*it) != 0) {
-					delete (*it);
-					(*it) = 0;
-				}
+			for (auto itr : m_sheet_list) {
+				EAPI_DELETE(itr);
 			}
 			m_sheet_list.clear();
 		}
@@ -116,43 +101,42 @@ private:
 	friend class Destructor;
 
 	static List m_sheet_list;
-	static sheet_signal_t m_signal_sheet_added;
-	static sheet_signal_t m_signal_sheet_removed;
+	static sheet_signal_t m_signal_event;
 
 	static bool once;
 };
 
 template<class API>
-typename SheetList<API>::sheet_signal_t SheetList<API>::m_signal_sheet_added;
-
-template<class API>
-typename SheetList<API>::sheet_signal_t SheetList<API>::m_signal_sheet_removed;
-
-template<class API>
-typename SheetList<API>::sheet_signal_t SheetList<API>::m_signal_sheet_updated;
+typename APIObject<API>::sheet_signal_t APIObject<API>::m_signal_event;
 
 
 template<class API>
-typename SheetList<API>::List SheetList<API>::m_sheet_list;
+typename APIObject<API>::List APIObject<API>::m_sheet_list;
 
 template<class API>
-bool SheetList<API>::once = false;
+bool APIObject<API>::once = false;
 
 template<class API>
-API * SheetList<API>::manage(API *api) {
+API * APIObject<API>::manage(API *api) {
 	if (!once) {
 		once = true;
 		static Destructor destruct;
 	}
 	m_sheet_list.push_back(api);
 
-	SheetList<API>::m_signal_sheet_added(api);
+	api->finish(API_EVENT_ADDED);
 	return api;
 }
 
 template<class API>
+void APIObject<API>::finish(const APIEvent res) {
+	API *ptr = static_cast<API*>(this);
+	m_signal_event({ptr, res, m_status});
+}
+
+template<class API>
 template<typename _Predicate>
-bool SheetList<API>::find_if(_Predicate __pred, API *&ptr) {
+bool APIObject<API>::find_if(_Predicate __pred, API *&ptr) {
 	iterator it = std::find_if(m_sheet_list.begin(), m_sheet_list.end(), __pred);
 
 	if (it == m_sheet_list.end())
@@ -163,24 +147,25 @@ bool SheetList<API>::find_if(_Predicate __pred, API *&ptr) {
 }
 
 template<class API>
-void SheetList<API>::remove(API *api) {
-	if(api != 0) {
-		SheetList<API>::m_signal_sheet_removed(api);
-		m_sheet_list.remove(api);
-		delete api;
-		api = 0;
+void APIObject<API>::remove(API *api) {
+	if(api == 0 || m_sheet_list.find(api) == m_sheet_list.end()) {
+		return;
 	}
+
+	api->finish(API_EVENT_REMOVED);
+	m_sheet_list.remove(api);
+	EAPI_DELETE(api);
 }
 
 template<class API>
-typename SheetList<API>::iterator SheetList<API>::begin() {
+typename APIObject<API>::iterator APIObject<API>::begin() {
 	return m_sheet_list.begin();
 }
 
 template<class API>
-typename SheetList<API>::iterator SheetList<API>::end() {
+typename APIObject<API>::iterator APIObject<API>::end() {
 	return m_sheet_list.end();
 }
 
 } /* namespace EAPI */
-#endif /* SHEETMANAGER_H_ */
+#endif /* APIOBJECT_H_ */

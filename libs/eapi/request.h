@@ -31,7 +31,7 @@
 
 namespace EAPI {
 
-class BasicAPI;
+class APIInterface;
 
 /*! \brief
  *
@@ -49,7 +49,7 @@ protected:
 	static int curl_debug_callback (CURL *handle, curl_infotype type, char *msg, size_t size, void *);
 
 public:
-	Request(BasicAPI *api, bool verbose = false);
+	Request(APIInterface *api, bool verbose = false);
 	virtual ~Request();
 
 	//! \brief return whether the request is valid
@@ -57,6 +57,10 @@ public:
 
 	//! \brief Perfoms the curl request, if the Request is valid
 	void run();
+
+	void run_sync();
+
+	void do_curl();
 
 	const CURLcode & get_result() {
 		return curl_result;
@@ -102,7 +106,7 @@ public:
 	}
 
 protected:
-	BasicAPI *m_api;
+	APIInterface *m_api;
 	bool m_verbose;
 
 	UpdateResult update_result;

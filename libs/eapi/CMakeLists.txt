@@ -35,7 +35,7 @@ LINK_DIRECTORIES (
 )
 
 SET (eapi_SOURCES
-	eapi.cc request.cc exception.cc basicapi.cc 
+	eapi.cc request.cc exception.cc apisheet.cc 
 	sheets/keyinfo.cc sheets/charactersheet.cc
 )
 

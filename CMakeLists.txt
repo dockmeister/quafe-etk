@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 SET (CMAKE_BUILD_TYPE Debug CACHE STRING "default to debug" FORCE)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fmessage-length=0")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fmessage-length=0 -std=c++11")
 SET (CMAKE_CXX_FLAGS_DEBUG "-O1 -g")
 SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -34,6 +34,7 @@ FIND_PACKAGE (Doxygen)
 
 SET (QUAFE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/quafe")
 
+ADD_SUBDIRECTORY (data)
 add_subdirectory (libs/pugixml)
 add_subdirectory (libs/eapi)
 

@@ -20,15 +20,14 @@
 #define KEYINFO_H_
 
 #include <eapi/eapi-config.h>
-#include <eapi/basicapi.h>
-#include <eapi/sheetlist.h>
+#include <eapi/apiobject.h>
 
 namespace EAPI {
 
 /*! TODO: write doc
  *
  */
-class EAPI_API KeyInfo : public SheetList<KeyInfo>, public BasicAPI {
+class EAPI_API KeyInfo : public APIObject<KeyInfo> {
 public:
 	//! \brief Represents a character available through this API Key.
 	struct Character {
@@ -43,8 +42,6 @@ public:
 	static KeyInfo * create(int keyID, const Glib::ustring &vCode);
 
 	virtual ~KeyInfo();
-
-	virtual void update(const KeyInfo::sheet_slot_t &slot);
 
 	/*! \brief Searches the character list for 'id'
 	 *
@@ -78,7 +75,6 @@ protected:
 	virtual bool parse_result(const pugi::xml_node &result_row);
 	virtual void parse_character_row(const pugi::xml_node &char_row);
 
-	virtual void finish();
 private:
 	CharacterList m_charlist;
 	bool active;

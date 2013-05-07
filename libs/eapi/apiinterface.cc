@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <eapi/basicapi.h>
+#include <eapi/apiinterface.h>
 #include <eapi/eapi-logging.h>
 #include <eapi/eapi.h>
 
@@ -27,17 +27,20 @@
 EAPI_DECLARE_STATIC_LOGGER("EAPI");
 
 namespace EAPI {
-BasicAPI::BasicAPI(const int id_, const ApiConfig &cfg) :
-		id(id_), uri(cfg.uri), cache(cfg.cache), m_status(0) {
+
+APIInterface::APIInterface(const int id_, const Config &cfg) :
+		id(id_), uri(cfg.uri), cache(cfg.cache){
 
 	m_filename = Glib::build_filename(Main::instance()->get_working_dir(), cfg.filename);
 	m_value_map["cachedUntil"] = Glib::DateTime::create_utc(0,0,0,0,0,0);
 }
 
-BasicAPI::~BasicAPI() {
+
+APIInterface::~APIInterface() {
 }
 
-int BasicAPI::check_status(int status_flags) {
+
+int APIInterface::check_status(int status_flags) {
 	if(!m_error.empty() || (m_status & API_STATUS_ERROR)) {
 		assert((m_status & API_STATUS_VALID) == 0);
 		assert((m_status & API_STATUS_ERROR) > 0);
@@ -46,7 +49,7 @@ int BasicAPI::check_status(int status_flags) {
 
 	if(m_status & API_STATUS_VALID) {
 		// once here we can assert cachedUntil is set
-		Glib::DateTime cache = value<Glib::DateTime>("cachedUntil");
+		Glib::DateTime cache = get_datetime("cachedUntil");
 		Glib::TimeSpan diff  = cache.difference(Glib::DateTime::create_now_utc());
 		if(diff < 0) {
 			m_status |= API_STATUS_OUTDATED;
@@ -58,7 +61,8 @@ int BasicAPI::check_status(int status_flags) {
 	return (m_status & status_flags);
 }
 
-void BasicAPI::update() {
+
+void APIInterface::update() {
 	if(!lock_.trylock()) {
 		throw Exception("A update is already running!");
 	}
@@ -74,10 +78,27 @@ void BasicAPI::update() {
 	Main::instance()->request(this);
 }
 
+void APIInterface::finish_update() {
+
+}
+
+void APIInterface::lock() {
+	lock_.lock();
+}
+
+void APIInterface::unlock() {
+	lock_.unlock();
+}
+
+void APIInterface::set_error(const Glib::ustring msg, APIError e) {
+	m_error = msg;
+}
+
 /********************************************************************************************
  * Parse methods
  */
-bool BasicAPI::parse_cache() {
+
+bool APIInterface::parse_cache() {
 	if(!Glib::file_test(m_filename, Glib::FILE_TEST_EXISTS))
 		return false;
 
@@ -95,7 +116,8 @@ bool BasicAPI::parse_cache() {
 	return parse_xml_document();
 }
 
-bool BasicAPI::parse_stringstream() {
+
+bool APIInterface::parse_stringstream() {
 	pugi::xml_parse_result result = m_document.load(stream_);
 	if (!result) {
 		m_error = result.description();
@@ -122,7 +144,8 @@ bool BasicAPI::parse_stringstream() {
 	return true;
 }
 
-bool BasicAPI::parse_xml_document() {
+
+bool APIInterface::parse_xml_document() {
 	int vremove = API_STATUS_OUTDATED & API_STATUS_CACHED & API_STATUS_ERROR;
 	//[ Check if the document is a valid eveapi document
 	pugi::xml_node root = m_document.child("eveapi");
@@ -156,10 +179,45 @@ bool BasicAPI::parse_xml_document() {
 	//]
 }
 
-/********************************************************************************************
- * public little helper
- */
-const Glib::ustring BasicAPI::get_document() {
+// ------------------------------------------------------------------------------------------
+// - Value access methods
+
+Glib::ustring APIInterface::get_string(const Glib::ustring what) const {
+	Glib::ustring ret_value = "";
+	try {
+		ret_value = get_value<Glib::ustring>(what);
+	} catch(Exception &e) {
+		LOG_WARN(e.what());
+	}
+
+	return ret_value;
+}
+
+int APIInterface::get_integer(const Glib::ustring what) const {
+	int ret_value = 0;
+	try {
+		ret_value = get_value<int>(what);
+	} catch(Exception &e) {
+		LOG_WARN(e.what());
+	}
+
+	return ret_value;
+}
+
+Glib::DateTime APIInterface::get_datetime(const Glib::ustring what) const {
+	Glib::DateTime ret_value;
+	try {
+		ret_value = get_value<Glib::DateTime>(what);
+	} catch(Exception &e) {
+		LOG_WARN(e.what());
+	}
+
+	return ret_value;
+}
+// ------------------------------------------------------------------------------------------
+// -
+
+const Glib::ustring APIInterface::get_document() {
 	Glib::Mutex::Lock lock(lock_);
 	std::stringstream doc;
 	m_document.save(doc);
@@ -167,7 +225,8 @@ const Glib::ustring BasicAPI::get_document() {
 	return doc.str();
 }
 
-Glib::DateTime BasicAPI::ustring_to_datetime(const Glib::ustring &str_t) const {
+
+Glib::DateTime APIInterface::ustring_to_datetime(const Glib::ustring &str_t) const {
 	// input format: YYYY-MM-DD HH:MM:SS
 	Glib::DateTime date_t;
 	try {
@@ -184,25 +243,29 @@ Glib::DateTime BasicAPI::ustring_to_datetime(const Glib::ustring &str_t) const {
 	return date_t;
 }
 
-const Glib::ustring BasicAPI::get_postfields() {
-	std::stringstream ss;
+
+const Glib::ustring APIInterface::make_postfields() const{
+	Glib::ustring post;
 
 	ValueMap::const_iterator it = m_value_map.find("keyID");
 	if(it != m_value_map.end()) {
-		ss << "keyID=" << boost::any_cast<int>(m_value_map["keyID"]);
+		post += Glib::ustring::compose("keyID=%1", get_integer("keyID"));
 	}
 
 	it = m_value_map.find("vCode");
 	if(it != m_value_map.end()) {
-		ss << "&vCode=" << boost::any_cast<Glib::ustring>(m_value_map["vCode"]);
+		post += Glib::ustring::compose("&vCode=%1", get_string("vCode"));
 	}
 
 	it = m_value_map.find("characterID");
 	if(it != m_value_map.end()) {
-		ss << "&characterID=" << boost::any_cast<int>(m_value_map["characterID"]);
+		post += Glib::ustring::compose("&characterID=%1", get_integer("characterID"));
 	}
 
-	LOG_TRACE(ss);
-	return ss.str();
+	return post;
+}
+
+const Glib::ustring APIInterface::make_url() const {
+	return Glib::ustring::compose("https://api.eveonline.com%1", uri);
 }
 }

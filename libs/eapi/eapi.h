@@ -28,7 +28,7 @@
 
 namespace EAPI {
 class Request;
-class BasicAPI;
+class APIInterface;
 
 
 class EAPI_API Main : public Quafe::Singleton<Main> {
@@ -50,7 +50,7 @@ public:
 
 
 
-	virtual void request(BasicAPI *api);
+	virtual void request(APIInterface *api);
 
 	virtual void request_finished();
 

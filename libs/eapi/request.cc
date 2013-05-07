@@ -7,7 +7,7 @@
 
 #include <eapi/request.h>
 #include <eapi/eapi-logging.h>
-#include <eapi/basicapi.h>
+#include <eapi/apiinterface.h>
 
 #include <assert.h>
 
@@ -57,15 +57,14 @@ int Request::curl_debug_callback (CURL *handle, curl_infotype type, char *msg, s
  * Curl callbacks
  */
 
-Request::Request(BasicAPI *api, bool verbose) :
+Request::Request(APIInterface *api, bool verbose) :
 		m_api(api), m_verbose(verbose), update_result(API_UPDATE_FAILED), curl_result(CURLE_OK) {
 
 	m_curl = curl_easy_init();
 }
 
 Request::~Request() {
-	m_api->finish();
-	m_api->lock_.unlock();
+	m_api->unlock();
 	curl_easy_cleanup(m_curl);
 }
 
@@ -88,45 +87,47 @@ void Request::destroy_request_system() {
 void Request::run() {
 	// check if this request is valid
 	if(!validate()) {
-		m_api->m_error = "failed to setup request";
+		m_api->set_error("failed to setup request");
 		curl_result = CURLE_FAILED_INIT;
 		push_finish_queue(this);
 	}
 
+	do_curl();
+
+	push_finish_queue(this);
+}
+
+void Request::run_sync() {
+	do_curl();
+}
+
+void Request::do_curl() {
 	// connect the debug message handler
 	if(m_verbose) {
 		curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
 		curl_easy_setopt(m_curl, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
-		// we dont need any CURLOPT_DEBUGDATA
 	}
 
-	Glib::ustring post_fields = m_api->get_postfields();
-	Glib::ustring url = "https://api.eveonline.com" + m_api->uri;
+	Glib::ustring post_fields = m_api->make_postfields();
+	Glib::ustring url = m_api->make_url();
 
 	curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(m_curl, CURLOPT_POST, 1L);
 	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, post_fields.c_str());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, write_to_stream);
-	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &(m_api->stream_));
+	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &(m_api->get_stream()));
 	curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(m_curl, CURLOPT_ERRORBUFFER, m_error);
 
-	{
-		curl_result = curl_easy_perform(m_curl);
+	m_api->lock();
+	curl_result = curl_easy_perform(m_curl);
 
-		if(curl_result == CURLE_OK) {
-			m_api->parse_stringstream();
-			update_result = API_UPDATE_OK;
-		} else {
-			if(m_api->m_error.empty()) {
-				m_api->m_error = "unknown error occured";
-			}
-			curl_result = CURLE_SSL_ISSUER_ERROR;
-			update_result = API_UPDATE_FAILED;
-		}
+	if(curl_result == CURLE_OK) {
+		m_api->parse_stringstream();
+	} else {
+		m_api->set_error("HTTP Request failed", API_HTTP_FAILED);
 	}
-
-	push_finish_queue(this);
+	m_api->unlock();
 }
 
 bool Request::validate() const {

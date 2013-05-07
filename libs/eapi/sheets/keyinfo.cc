@@ -103,17 +103,6 @@ bool KeyInfo::check_cakAccess(int access) {
  *		</key>
  *	</result>
  */
-void KeyInfo::update(const KeyInfo::sheet_slot_t &slot) {
-	if(sig_connection.connected())
-		sig_connection.disconnect();
-	sig_connection = signal_sheet_updated(slot);
-	BasicAPI::update();
-}
-
-void KeyInfo::finish() {
-	m_signal_sheet_updated(this);
-}
-
 bool KeyInfo::parse_result(const pugi::xml_node &result) {
 	assert(result); // once this method is called it should be a valid api v2 document
 

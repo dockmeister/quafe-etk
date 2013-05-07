@@ -29,12 +29,16 @@ enum CacheStyle {
 	CACHE_STYLE_LONG
 };
 
-enum UpdateResult {
-	API_UPDATE_OK = 1 << 0,
-	API_UPDATE_CACHE = 1 << 1,
-	API_UPDATE_FAILED = 1 << 2
+enum APIEvent : uint32_t {
+	API_EVENT_ADDED = 1,
+	API_EVENT_REMOVED,
+	API_EVENT_UPDATED
 };
 
+enum APIError : uint32_t {
+	API_NO_ERROR = 0,
+	API_HTTP_FAILED = 1
+};
 enum StatusFlags {
 	API_STATUS_VALID = 1 << 0,
 	API_STATUS_CACHED = 1 << 2, //!< API-Data loaded from file and no new version available

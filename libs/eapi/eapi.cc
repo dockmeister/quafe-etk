@@ -19,7 +19,7 @@
 #include <eapi/eapi-logging.h>
 
 #include <eapi/request.h>
-#include <eapi/basicapi.h>
+#include <eapi/apisheet.h>
 #include <eapi/exception.h>
 
 #include <assert.h>
@@ -68,7 +68,7 @@ Main::~Main() {
 	Request::destroy_request_system();
 }
 
-void Main::request(BasicAPI *api) {
+void Main::request(APIInterface *api) {
 	LOG_DEBUG("Pushing new API Request to queue. (verbose: " << verbose_ << ")");
 	Request *req = new Request(api, verbose_);
 

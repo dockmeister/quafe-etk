@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BASICAPI_H_
-#define BASICAPI_H_
+#ifndef APIINTERFACE_H_
+#define APIINTERFACE_H_
 
 #include <eapi/eapi-config.h>
 #include <eapi/types.h>
@@ -26,8 +26,8 @@
 #include <map>
 #include <boost/any.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
+#include <boost/signals2.hpp>
 #include <pugixml/pugixml.hpp>
 #include <glibmm/datetime.h>
 #include <glibmm/timezone.h>
@@ -35,15 +35,14 @@
 
 namespace EAPI {
 
-class EAPI_API BasicAPI: public boost::noncopyable {
-	friend class Request;
-	friend class Main;
+class EAPI_API APIInterface {
 public:
-	typedef struct {
+	struct Config {
 		Glib::ustring filename;
 		const Glib::ustring uri;
 		const CacheStyle cache;
-	} ApiConfig;
+	};
+
 protected:
 	//!< The type ValueMap stores any value parsed from xml
 	typedef std::map<Glib::ustring, boost::any> ValueMap;
@@ -56,7 +55,13 @@ public:
 
 public:
 	//!< public destructor
-	virtual ~BasicAPI();
+	virtual ~APIInterface();
+
+	//!< remove copy constructor
+	APIInterface(const APIInterface &other) = delete;
+
+	//!<
+	const APIInterface& operator=( const APIInterface& ) = delete;
 
 	/*!\brief Check this sheet for specfic flags
 	 *
@@ -72,8 +77,18 @@ public:
 	 */
 	virtual void update();
 
-	template<typename T>
-	const T value(const Glib::ustring) const;
+	//!
+	Glib::ustring get_string(const Glib::ustring w) const;
+
+	//!
+	int32_t get_integer(const Glib::ustring w) const;
+
+	//!
+	Glib::DateTime get_datetime(const Glib::ustring w) const;
+
+	//!
+	template <class V>
+	V get_value(const Glib::ustring w) const;
 
 protected:
 	/*!\brief
@@ -81,7 +96,7 @@ protected:
 	 * \param id_ a unique id (e.g. characterid)
 	 * \param ApiConfig
 	 */
-	BasicAPI(const int id_, const ApiConfig &cfg);
+	APIInterface(const int id_, const Config &cfg);
 
 	/*!\brief Checks if a cached EAPI document is available. If so parse_xml_document will be called.
 	 *
@@ -100,10 +115,16 @@ protected:
 	virtual bool parse_stringstream();
 	virtual bool parse_xml_document();
 
-	virtual void finish() = 0;
+	virtual void finish(const APIEvent) = 0;
+
+	virtual void finish_update();
+	virtual void lock();
+	virtual void unlock();
+
+	virtual void set_error(const Glib::ustring msg, APIError e = 0);
 
 	Glib::ustring m_filename; //!< local filename to save the xml file (workingdir + apikey_dir + file)
-	int m_status;
+	int m_status = 0;
 	Glib::ustring m_errno; //!<
 
 	pugi::xml_document m_document;
@@ -120,24 +141,25 @@ public:
 	//! \brief Converts aGlib::ustring  (format: 'YYYY-MM-DD HH:MM:SS') into DateTime
 	Glib::DateTime ustring_to_datetime(const Glib::ustring &str) const;
 
+protected:
 	//! \brief used by the actual request - generates a string containing the post variables
-	virtual const Glib::ustring get_postfields();
+	virtual const Glib::ustring make_postfields() const;
+	virtual const Glib::ustring make_url() const;
 };
 
-template<class T>
-const T BasicAPI::value(const Glib::ustring w) const {
-	// TODO operator [] not thread safe
-	ValueMap::const_iterator it = m_value_map.find(w);
-	if (it == m_value_map.end()) {
-		throw BadValueException<T>("Value '" + w + "' not found. Check status first!");
+template <class V>
+V APIInterface::get_value<V>(const Glib::ustring w) const {
+	auto itr = m_value_map.find(w);
+	if(itr == m_value_map.find(w)) {
+		throw BadValueException("Invalid access to index: " + w);
 	}
+
 	try {
-		return boost::any_cast<T>(it->second);
-	} catch (...) {
-		throw BadValueCastException<T>(w, T());
+		return boost::any_cast<V>(itr->second);
+	} catch (boost::bad_any_cast &e) {
+		throw BadValueCastException("Failed to cast index %1 to string" + w);
 	}
 }
-
 }
 
-#endif /* BASICAPI_H_ */
+#endif /* APIINTERFACE_H_ */
